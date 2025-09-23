@@ -47,6 +47,7 @@ pub const Map = struct {
         const width: usize = @intCast(parsed.value.width);
         const height: usize = @intCast(parsed.value.height);
         const data = try allocator.alloc(Tile, width * height);
+        @memset(data, Tile.Empty);
 
         for (parsed.value.tiles, 0..) |tiles, row| {
             for (tiles, 0..) |tile, col| {

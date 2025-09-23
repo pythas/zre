@@ -1,4 +1,7 @@
 const std = @import("std");
+const zgpu = @import("zgpu");
+
+const TextureBuffer = @import("texture_buffer.zig").TextureBuffer;
 
 pub const MapSource = union(enum) {
     path: []const u8,
@@ -30,5 +33,16 @@ pub const World = struct {
 
     pub fn deinit(self: Self) void {
         self.map.deinit();
+    }
+
+    pub fn update(self: Self, dt: f32) void {
+        _ = self;
+        _ = dt;
+    }
+
+    pub fn rasterize(self: Self, texture_buffer: *TextureBuffer) void {
+        _ = self;
+
+        texture_buffer.clear();
     }
 };
