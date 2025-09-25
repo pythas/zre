@@ -74,7 +74,7 @@ pub const TextureBuffer = struct {
     }
 
     pub fn drawVerticalLineSegment(self: *Self, x: i32, y0: i32, y1: i32, color: wgpu.Color) void {
-        if (x < 0 or x > self.width) {
+        if (x < 0 or x >= @as(i32, @intCast(self.width))) {
             return;
         }
 

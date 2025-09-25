@@ -1,9 +1,11 @@
 const std = @import("std");
 const zgpu = @import("zgpu");
+const zglfw = @import("zglfw");
 
 const StreamingTexture = @import("../streaming_texture.zig").StreamingTexture;
 const World = @import("../world.zig").World;
 const MapSource = @import("../world.zig").MapSource;
+const KeyboardState = @import("../world.zig").KeyboardState;
 
 pub const GameMode = struct {
     const Self = @This();
@@ -13,12 +15,14 @@ pub const GameMode = struct {
     screen: StreamingTexture,
     world: World,
     pipeline: zgpu.RenderPipelineHandle,
+    window: *zglfw.Window,
 
     pub const Config = struct {
         map_source: MapSource,
         bind_group_layout: zgpu.BindGroupLayoutHandle,
         uniforms_buffer: zgpu.BufferHandle,
         pipeline: zgpu.RenderPipelineHandle,
+        window: *zglfw.Window,
     };
 
     pub fn init(allocator: std.mem.Allocator, gctx: *zgpu.GraphicsContext, config: Config) !Self {
@@ -33,6 +37,7 @@ pub const GameMode = struct {
             .screen = screen,
             .world = world,
             .pipeline = config.pipeline,
+            .window = config.window,
         };
     }
 
@@ -42,7 +47,11 @@ pub const GameMode = struct {
     }
 
     pub fn update(self: *Self, dt: f32) !void {
-        self.world.update(dt);
+        const keyboard_state = KeyboardState{
+            .window = self.window,
+        };
+
+        self.world.update(dt, &keyboard_state);
         self.world.rasterize(&self.screen.texture_buffer);
         self.screen.upload();
     }

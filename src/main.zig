@@ -25,6 +25,7 @@ pub fn main() !void {
         .bind_group_layout = renderer.bind_group_layout,
         .uniforms_buffer = renderer.uniforms_buffer,
         .pipeline = renderer.pipeline,
+        .window = window,
     });
     defer game.deinit();
 

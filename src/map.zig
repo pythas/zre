@@ -3,6 +3,7 @@ const std = @import("std");
 pub const Tile = enum(u8) {
     Empty = 0,
     Wall = 1,
+    AnotherWall = 2,
 };
 
 const JsonMap = struct {
@@ -54,6 +55,7 @@ pub const Map = struct {
                 data[row * width + col] = switch (tile) {
                     0 => Tile.Empty,
                     1 => Tile.Wall,
+                    2 => Tile.AnotherWall,
                     else => Tile.Empty,
                 };
             }
@@ -69,5 +71,12 @@ pub const Map = struct {
 
     pub fn deinit(self: Self) void {
         self.allocator.free(self.data);
+    }
+
+    pub fn getTile(self: Self, x: i32, y: i32) Tile {
+        if (x < 0 or y < 0 or x >= self.width or y >= self.height) {
+            return Tile.Wall;
+        }
+        return self.data[@as(usize, @intCast(y)) * self.width + @as(usize, @intCast(x))];
     }
 };
