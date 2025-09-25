@@ -62,9 +62,11 @@ fn uToI32(value: anytype) i32 {
 pub const World = struct {
     const Self = @This();
 
+    allocator: std.mem.Allocator,
     map: Map,
     player: Player,
     camera: Camera,
+    textures: [][][]u8,
 
     pub fn init(allocator: std.mem.Allocator, map_source: MapSource) !Self {
         const map = switch (map_source) {
@@ -81,15 +83,29 @@ pub const World = struct {
             Vec2.init(0.0, 0.66),
         );
 
+        const textures = try allocator.alloc([][]u8, 1);
+        textures[0] = try allocator.alloc([]u8, 64);
+
+        for (textures[0], 0..) |*row, y| {
+            row.* = try allocator.alloc(u8, 64);
+
+            for (0..64) |x| {
+                row.*[x] = @intCast(y);
+            }
+        }
+
         return .{
+            .allocator = allocator,
             .map = map,
             .player = player,
             .camera = camera,
+            .textures = textures,
         };
     }
 
     pub fn deinit(self: Self) void {
         self.map.deinit();
+        self.allocator.free(self.textures);
     }
 
     pub fn update(self: *Self, dt: f32, keyboard_state: *const KeyboardState) void {
@@ -175,11 +191,71 @@ pub const World = struct {
 
         const screen_width = texture_buffer.width;
         const screen_height = texture_buffer.height;
+        const screen_height_f32: f32 = @floatFromInt(screen_height);
+        const screen_width_f32: f32 = @floatFromInt(screen_width);
+        const half_screen_height = uToI32(screen_height) >> 1;
+
+        for (0..screen_height) |y_usize| {
+            const y: u32 = @intCast(y_usize);
+
+            const ray_dir_0 = Vec2.init(
+                self.player.direction.x - self.camera.plane.x,
+                self.player.direction.y - self.camera.plane.y,
+            );
+            const ray_dir_1 = Vec2.init(
+                self.player.direction.x + self.camera.plane.x,
+                self.player.direction.y + self.camera.plane.y,
+            );
+
+            const position_y = @as(i32, @intCast(y)) - half_screen_height;
+            if (position_y == 0) continue;
+            const position_z: f32 = @floatFromInt(half_screen_height);
+
+            const row_distance = position_z / @as(f32, @floatFromInt(position_y));
+
+            const floor_step_x = row_distance * (ray_dir_1.x - ray_dir_0.x) / screen_width_f32;
+            const floor_step_y = row_distance * (ray_dir_1.y - ray_dir_0.y) / screen_width_f32;
+
+            var floor_x = self.player.position.x + row_distance * ray_dir_0.x;
+            var floor_y = self.player.position.y + row_distance * ray_dir_0.y;
+
+            for (0..screen_width) |x_usize| {
+                const cell_x = @floor(floor_x);
+                const cell_y = @floor(floor_y);
+
+                const frac_x = floor_x - cell_x;
+                const frac_y = floor_y - cell_y;
+
+                var texture_x: u32 = @intFromFloat(@floor(frac_x * 64.0));
+                var texture_y: u32 = @intFromFloat(@floor(frac_y * 64.0));
+
+                texture_x &= 64 - 1;
+                texture_y &= 64 - 1;
+
+                floor_x += floor_step_x;
+                floor_y += floor_step_y;
+
+                const col = self.textures[0][texture_y][texture_x];
+
+                texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
+                    .r = @as(f32, @floatFromInt(col)) / 255.0,
+                    .g = @as(f32, @floatFromInt(col)) / 255.0,
+                    .b = @as(f32, @floatFromInt(col)) / 255.0,
+                    .a = 1.0,
+                });
+
+                texture_buffer.drawPixel(@intCast(x_usize), @as(i32, @intCast(screen_height)) - @as(i32, @intCast(y)) - 1, .{
+                    .r = @as(f32, @floatFromInt(col)) / 255.0,
+                    .g = @as(f32, @floatFromInt(col)) / 255.0,
+                    .b = @as(f32, @floatFromInt(col)) / 255.0,
+                    .a = 1.0,
+                });
+            }
+        }
 
         for (0..screen_width) |x_usize| {
             const x_i32 = uToI32(x_usize);
             const x_f32: f32 = @floatFromInt(x_usize);
-            const screen_width_f32: f32 = @floatFromInt(screen_width);
 
             const camera_x = 2.0 * x_f32 / screen_width_f32 - 1.0;
             const ray_dir = self.player.direction.add(self.camera.plane.mulScalar(camera_x));
@@ -248,12 +324,10 @@ pub const World = struct {
                 }
 
                 const safe_dist = @max(perp_wall_dist, 0.0001); // Prevent division by very small values
-                const screen_height_f32: f32 = @floatFromInt(screen_height);
                 const height_ratio: f32 = screen_height_f32 / safe_dist;
                 const line_height = f32ToI32(height_ratio);
 
                 const half_line_height = line_height >> 1;
-                const half_screen_height = uToI32(screen_height) >> 1;
 
                 var draw_start = -half_line_height + half_screen_height;
                 draw_start = @max(0, draw_start);
@@ -261,10 +335,51 @@ pub const World = struct {
                 var draw_end = half_line_height + half_screen_height;
                 draw_end = @min(uToI32(screen_height) - 1, draw_end);
 
-                switch (tile) {
-                    .Wall => texture_buffer.drawVerticalLineSegment(x_i32, draw_start, draw_end, color.getColor(.White)),
-                    .AnotherWall => texture_buffer.drawVerticalLineSegment(x_i32, draw_start, draw_end, color.getColor(.Red)),
-                    else => {},
+                var wall_color = switch (tile) {
+                    .Wall => color.getColor(.White),
+                    .AnotherWall => color.getColor(.Red),
+                    else => color.getColor(.White),
+                };
+
+                if (side == 1) {
+                    wall_color.r /= 2;
+                    wall_color.g /= 2;
+                    wall_color.b /= 2;
+                }
+
+                texture_buffer.drawVerticalLineSegment(
+                    x_i32,
+                    draw_start,
+                    draw_end,
+                    wall_color,
+                );
+
+                var wall_x = if (side == 0)
+                    self.player.position.y + perp_wall_dist * ray_dir.y
+                else
+                    self.player.position.x + perp_wall_dist * ray_dir.x;
+
+                wall_x -= @floor(wall_x);
+
+                var texture_x: u32 = @intFromFloat(@trunc(wall_x * 64));
+
+                if ((side == 0 and ray_dir.x > 0) or (side == 1 and ray_dir.y < 0)) {
+                    texture_x = 64 - texture_x - 1;
+                }
+
+                const step_y = 1.0 * 64 / @as(f32, @floatFromInt(line_height));
+                var texture_position = @as(f32, @floatFromInt(draw_start - half_screen_height + half_line_height)) * step_y;
+
+                for (@intCast(draw_start)..@intCast(draw_end)) |y| {
+                    const texture_y: u32 = @as(u32, @intFromFloat(texture_position)) & (64 - 1);
+                    texture_position += step_y;
+                    const col = self.textures[0][texture_y][texture_x];
+                    texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
+                        .r = @as(f32, @floatFromInt(col)) / 255.0,
+                        .g = @as(f32, @floatFromInt(col)) / 255.0,
+                        .b = @as(f32, @floatFromInt(col)) / 255.0,
+                        .a = 1.0,
+                    });
                 }
             }
         }
