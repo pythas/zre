@@ -163,11 +163,11 @@ pub const World = struct {
     }
 
     fn rotatePlayerLeft(self: *Self, dt: f32) void {
-        self.player.rotate(dt, -1.0, &self.camera.plane);
+        self.player.rotate(dt, 1.0, &self.camera.plane);
     }
 
     fn rotatePlayerRight(self: *Self, dt: f32) void {
-        self.player.rotate(dt, 1.0, &self.camera.plane);
+        self.player.rotate(dt, -1.0, &self.camera.plane);
     }
 
     pub fn rasterize(self: Self, texture_buffer: *TextureBuffer) void {
