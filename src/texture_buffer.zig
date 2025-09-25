@@ -190,7 +190,7 @@ pub const TextureBuffer = struct {
         }
     }
 
-    pub fn clear(self: *Self, color: wgpu.Color) !void {
+    pub fn clear(self: *Self, color: wgpu.Color) void {
         for (0..self.height) |y| {
             for (0..self.width) |x| {
                 drawPixel(self, @intCast(x), @intCast(y), color);

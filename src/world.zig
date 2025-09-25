@@ -1,5 +1,6 @@
 const std = @import("std");
 const zgpu = @import("zgpu");
+const color = @import("color.zig");
 
 const TextureBuffer = @import("texture_buffer.zig").TextureBuffer;
 
@@ -43,6 +44,14 @@ pub const World = struct {
     pub fn rasterize(self: Self, texture_buffer: *TextureBuffer) void {
         _ = self;
 
-        texture_buffer.clear();
+        texture_buffer.clear(color.getColor(.Black));
+
+        const white = zgpu.wgpu.Color{ .r = 1.0, .g = 1.0, .b = 1.0, .a = 1.0 };
+        texture_buffer.drawHorizontalLine(@intCast(texture_buffer.height / 2), .Filled, white);
+
+        texture_buffer.drawVerticalLine(@intCast(texture_buffer.width / 2), .Filled, white);
+
+        const red = zgpu.wgpu.Color{ .r = 1.0, .g = 0.2, .b = 0.2, .a = 1.0 };
+        texture_buffer.drawPoint(@intCast(texture_buffer.width / 2), @intCast(texture_buffer.height / 2), 10, red);
     }
 };
