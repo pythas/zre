@@ -1,4 +1,7 @@
 const std = @import("std");
+const zstbi = @import("zstbi");
+
+const Texture = @import("texture.zig").Texture;
 
 pub const Tile = enum(u8) {
     Empty = 0,
@@ -19,10 +22,13 @@ pub const Map = struct {
     width: usize,
     height: usize,
     data: []Tile,
+    // textures: std.ArrayList([]u8),
+    textures: std.ArrayList(Texture),
 
     pub fn initEmpty(allocator: std.mem.Allocator) !Self {
         return .{
             .allocator = allocator,
+            .textures = std.ArrayList([]u8).init(allocator),
         };
     }
 
@@ -62,10 +68,11 @@ pub const Map = struct {
         }
 
         return .{
+            .allocator = allocator,
             .width = width,
             .height = height,
             .data = data,
-            .allocator = allocator,
+            .textures = std.ArrayList(Texture).init(allocator),
         };
     }
 
@@ -75,8 +82,17 @@ pub const Map = struct {
 
     pub fn getTile(self: Self, x: i32, y: i32) Tile {
         if (x < 0 or y < 0 or x >= self.width or y >= self.height) {
-            return Tile.Wall;
+            return .Empty;
         }
+
         return self.data[@as(usize, @intCast(y)) * self.width + @as(usize, @intCast(x))];
+    }
+
+    pub fn getTileTexture(self: Self, x: i32, y: i32) !Texture {
+        const tile = self.getTile(x, y);
+
+        std.debug.assert(tile < self.textures.items.len);
+
+        return self.textures[tile];
     }
 };

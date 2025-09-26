@@ -49,6 +49,7 @@ const Map = @import("map.zig").Map;
 const Player = @import("player.zig").Player;
 const Camera = @import("camera.zig").Camera;
 const Tile = @import("map.zig").Tile;
+const Texture = @import("texture.zig").Texture;
 
 // TODO: Move these helper functions to a utility file
 fn f32ToI32(value: f32) i32 {
@@ -59,6 +60,19 @@ fn uToI32(value: anytype) i32 {
     return @intCast(value);
 }
 
+const stride = 64 * 4;
+
+fn sample(texture: []u8, x: usize, y: usize) [4]u8 {
+    const i = y * stride + x * 4;
+
+    return .{
+        texture[i],
+        texture[i + 1],
+        texture[i + 2],
+        texture[i + 3],
+    };
+}
+
 pub const World = struct {
     const Self = @This();
 
@@ -66,13 +80,16 @@ pub const World = struct {
     map: Map,
     player: Player,
     camera: Camera,
-    textures: [][][]u8,
 
     pub fn init(allocator: std.mem.Allocator, map_source: MapSource) !Self {
-        const map = switch (map_source) {
+        var map = switch (map_source) {
             .path => |path| try Map.initFromPath(allocator, path),
             .json => |path| try Map.initFromJson(allocator, path),
         };
+
+        try map.textures.append(try Texture.init(allocator, "assets/textures/STEEL_1C.PNG"));
+        try map.textures.append(try Texture.init(allocator, "assets/textures/STEEL_1A.PNG"));
+        try map.textures.append(try Texture.init(allocator, "assets/textures/BRICK_3A.PNG"));
 
         const player = try Player.init(
             Vec2.init(7.5, 7.5),
@@ -83,29 +100,16 @@ pub const World = struct {
             Vec2.init(0.0, 0.66),
         );
 
-        const textures = try allocator.alloc([][]u8, 1);
-        textures[0] = try allocator.alloc([]u8, 64);
-
-        for (textures[0], 0..) |*row, y| {
-            row.* = try allocator.alloc(u8, 64);
-
-            for (0..64) |x| {
-                row.*[x] = @intCast(y);
-            }
-        }
-
         return .{
             .allocator = allocator,
             .map = map,
             .player = player,
             .camera = camera,
-            .textures = textures,
         };
     }
 
     pub fn deinit(self: Self) void {
         self.map.deinit();
-        self.allocator.free(self.textures);
     }
 
     pub fn update(self: *Self, dt: f32, keyboard_state: *const KeyboardState) void {
@@ -235,26 +239,35 @@ pub const World = struct {
                 floor_x += floor_step_x;
                 floor_y += floor_step_y;
 
-                const col = self.textures[0][texture_y][texture_x];
+                var floor_color = sample(self.map.textures.items[0].data, texture_x, texture_y);
+
+                floor_color[0] /= 2;
+                floor_color[1] /= 2;
+                floor_color[2] /= 2;
 
                 texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
-                    .r = @as(f32, @floatFromInt(col)) / 255.0,
-                    .g = @as(f32, @floatFromInt(col)) / 255.0,
-                    .b = @as(f32, @floatFromInt(col)) / 255.0,
-                    .a = 1.0,
+                    .r = @as(f32, @floatFromInt(floor_color[0])) / 255.0,
+                    .g = @as(f32, @floatFromInt(floor_color[1])) / 255.0,
+                    .b = @as(f32, @floatFromInt(floor_color[2])) / 255.0,
+                    .a = @as(f32, @floatFromInt(floor_color[3])) / 255.0,
                 });
 
+                var ceiling_color = sample(self.map.textures.items[1].data, texture_x, texture_y);
+
+                ceiling_color[0] /= 1;
+                ceiling_color[1] /= 1;
+                ceiling_color[2] /= 1;
+
                 texture_buffer.drawPixel(@intCast(x_usize), @as(i32, @intCast(screen_height)) - @as(i32, @intCast(y)) - 1, .{
-                    .r = @as(f32, @floatFromInt(col)) / 255.0,
-                    .g = @as(f32, @floatFromInt(col)) / 255.0,
-                    .b = @as(f32, @floatFromInt(col)) / 255.0,
-                    .a = 1.0,
+                    .r = @as(f32, @floatFromInt(ceiling_color[0])) / 255.0,
+                    .g = @as(f32, @floatFromInt(ceiling_color[1])) / 255.0,
+                    .b = @as(f32, @floatFromInt(ceiling_color[2])) / 255.0,
+                    .a = @as(f32, @floatFromInt(ceiling_color[3])) / 255.0,
                 });
             }
         }
 
         for (0..screen_width) |x_usize| {
-            const x_i32 = uToI32(x_usize);
             const x_f32: f32 = @floatFromInt(x_usize);
 
             const camera_x = 2.0 * x_f32 / screen_width_f32 - 1.0;
@@ -335,25 +348,6 @@ pub const World = struct {
                 var draw_end = half_line_height + half_screen_height;
                 draw_end = @min(uToI32(screen_height) - 1, draw_end);
 
-                var wall_color = switch (tile) {
-                    .Wall => color.getColor(.White),
-                    .AnotherWall => color.getColor(.Red),
-                    else => color.getColor(.White),
-                };
-
-                if (side == 1) {
-                    wall_color.r /= 2;
-                    wall_color.g /= 2;
-                    wall_color.b /= 2;
-                }
-
-                texture_buffer.drawVerticalLineSegment(
-                    x_i32,
-                    draw_start,
-                    draw_end,
-                    wall_color,
-                );
-
                 var wall_x = if (side == 0)
                     self.player.position.y + perp_wall_dist * ray_dir.y
                 else
@@ -373,12 +367,20 @@ pub const World = struct {
                 for (@intCast(draw_start)..@intCast(draw_end)) |y| {
                     const texture_y: u32 = @as(u32, @intFromFloat(texture_position)) & (64 - 1);
                     texture_position += step_y;
-                    const col = self.textures[0][texture_y][texture_x];
+
+                    var texture_color = sample(self.map.textures.items[2].data, texture_x, texture_y);
+
+                    if (side == 1) {
+                        texture_color[0] /= 2;
+                        texture_color[1] /= 2;
+                        texture_color[2] /= 2;
+                    }
+
                     texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
-                        .r = @as(f32, @floatFromInt(col)) / 255.0,
-                        .g = @as(f32, @floatFromInt(col)) / 255.0,
-                        .b = @as(f32, @floatFromInt(col)) / 255.0,
-                        .a = 1.0,
+                        .r = @as(f32, @floatFromInt(texture_color[0])) / 255.0,
+                        .g = @as(f32, @floatFromInt(texture_color[1])) / 255.0,
+                        .b = @as(f32, @floatFromInt(texture_color[2])) / 255.0,
+                        .a = @as(f32, @floatFromInt(texture_color[3])) / 255.0,
                     });
                 }
             }
