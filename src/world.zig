@@ -80,6 +80,7 @@ pub const World = struct {
     map: Map,
     player: Player,
     camera: Camera,
+    light_dir: Vec2,
 
     pub fn init(allocator: std.mem.Allocator, map_source: MapSource) !Self {
         var map = switch (map_source) {
@@ -105,6 +106,7 @@ pub const World = struct {
             .map = map,
             .player = player,
             .camera = camera,
+            .light_dir = Vec2.init(0.2, 0.6).normalize(),
         };
     }
 
@@ -368,18 +370,34 @@ pub const World = struct {
                     const texture_y: u32 = @as(u32, @intFromFloat(texture_position)) & (64 - 1);
                     texture_position += step_y;
 
-                    var texture_color = sample(self.map.textures.items[2].data, texture_x, texture_y);
+                    const texture_color = sample(self.map.textures.items[2].data, texture_x, texture_y);
 
-                    if (side == 1) {
-                        texture_color[0] /= 2;
-                        texture_color[1] /= 2;
-                        texture_color[2] /= 2;
+                    var n = Vec2.init(0.0, 0.0);
+
+                    if (side == 0) {
+                        n.x = -step.x;
+                        n.y = 0.0;
+                    } else {
+                        n.x = 0.0;
+                        n.y = -step.y;
                     }
 
+                    // directional light
+                    const ambient = 0.1;
+                    const diffuse = 0.5;
+
+                    const lambert = @max(0, n.dot(self.light_dir));
+                    const falloff = 1.0;
+                    const light = @min(1.0, ambient + diffuse * lambert) * falloff;
+
+                    const lr = @min(255.0, @as(f32, @floatFromInt(texture_color[0])) * light);
+                    const lg = @min(255.0, @as(f32, @floatFromInt(texture_color[1])) * light);
+                    const lb = @min(255.0, @as(f32, @floatFromInt(texture_color[2])) * light);
+
                     texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
-                        .r = @as(f32, @floatFromInt(texture_color[0])) / 255.0,
-                        .g = @as(f32, @floatFromInt(texture_color[1])) / 255.0,
-                        .b = @as(f32, @floatFromInt(texture_color[2])) / 255.0,
+                        .r = lr / 255.0,
+                        .g = lg / 255.0,
+                        .b = lb / 255.0,
                         .a = @as(f32, @floatFromInt(texture_color[3])) / 255.0,
                     });
                 }

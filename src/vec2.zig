@@ -1,3 +1,5 @@
+const std = @import("std");
+
 pub const Vec2 = struct {
     const Self = @This();
 
@@ -18,6 +20,23 @@ pub const Vec2 = struct {
 
     pub fn mulScalar(self: Self, scalar: f32) Self {
         return .{ .x = self.x * scalar, .y = self.y * scalar };
+    }
+
+    pub fn len(self: Self) f32 {
+        return std.math.sqrt(self.x * self.x + self.y * self.y);
+    }
+
+    pub fn normalize(self: Self) Self {
+        const l = self.len();
+
+        return .{
+            .x = self.x / l,
+            .y = self.y / l,
+        };
+    }
+
+    pub fn dot(a: Self, b: Vec2) f32 {
+        return a.x * b.y + a.y * b.x;
     }
 
     pub fn rotate(self: *Self, amount: f32) void {
