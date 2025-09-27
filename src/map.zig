@@ -2,7 +2,9 @@ const std = @import("std");
 const zstbi = @import("zstbi");
 
 const Texture = @import("texture.zig").Texture;
-const PointLight = @import("point_light.zig").PointLight;
+// const light = @import("light.zig").Light;
+const Light = @import("light.zig").Light;
+// const Attenuation = @import("light.zig").Attenuation;
 const Vec3 = @import("vec3.zig").Vec3;
 
 pub const Tile = struct {
@@ -38,9 +40,26 @@ const JsonTexture = struct {
     height: i32,
 };
 
+// We model the JSON light polymorphism (map02.json) with an explicit tagged struct
+const JsonLight = struct {
+    type: []const u8, // "point" | "directional"
+    position: ?[3]f32 = null, // only for point
+    direction: ?[3]f32 = null, // only for directional
+    color: [3]f32,
+    intensity: f32,
+    attenuation: ?struct { // only for point
+        type: []const u8, // "quadratic" | "radial"
+        linear: ?f32 = null,
+        quadratic: ?f32 = null,
+        radius: ?f32 = null,
+    } = null,
+    casts_shadows: bool,
+    enabled: bool,
+};
+
 const JsonLightning = struct {
     ambient: [3]f32,
-    point_lights: []JsonPointLight,
+    lights: []JsonLight,
 };
 
 const JsonQuadraticAttenuation = struct {
@@ -48,16 +67,16 @@ const JsonQuadraticAttenuation = struct {
     quadratic: f32,
 };
 
-const JsonPointLight = struct {
-    position: [3]f32,
-    color: [3]f32,
-    intensity: f32,
-    quadratic_attenuation: ?JsonQuadraticAttenuation,
-    casts_shadows: bool,
-    enabled: bool,
+const JsonRadialAttenuation = struct {
+    radius: f32,
 };
 
-// const JsonDirectionalLight = struct {};
+const JsonAttenuation = union(enum) {
+    quadratic: JsonQuadraticAttenuation,
+    radial: JsonRadialAttenuation,
+};
+
+// (Old union-based JSON light structs removed; new JsonLight struct above handles polymorphism)
 
 const JsonCeiling = struct {
     texture: i32,
@@ -80,18 +99,36 @@ const JsonMap = struct {
     ceiling: JsonCeiling,
     floor: JsonFloor,
     tiles: [][]JsonTile,
+    render: ?struct {
+        ambient_plane: ?f32 = null,
+        diffuse_plane: ?f32 = null,
+        diffuse_wall: ?f32 = null,
+        player_height: ?f32 = null,
+        light_height_bias: ?f32 = null,
+        fog: ?struct {
+            enabled: bool = false,
+            color: [3]f32 = .{ 0.0, 0.0, 0.0 },
+            density: f32 = 0.04,
+        } = null,
+        emissive_textures: ?[]struct { index: i32, intensity: f32 } = null,
+        specular: ?struct {
+            enabled: bool = false,
+            power: f32 = 16.0,
+            strength: f32 = 0.3,
+        } = null,
+    } = null,
 };
 
 pub const Lightning = struct {
     const Self = @This();
 
     ambient: [3]f32,
-    point_lights: std.ArrayList(PointLight),
+    lights: std.ArrayList(Light),
 
-    pub fn init(ambient: [3]f32, point_lights: std.ArrayList(PointLight)) Self {
+    pub fn init(ambient: [3]f32, lights: std.ArrayList(Light)) Self {
         return .{
             .ambient = ambient,
-            .point_lights = point_lights,
+            .lights = lights,
         };
     }
 };
@@ -107,6 +144,23 @@ pub const Map = struct {
     floor: usize,
     textures: std.ArrayList(Texture),
     lightning: Lightning,
+    render_settings: RenderSettings,
+
+    pub const RenderSettings = struct {
+        const Self = @This();
+        ambient_plane: f32 = 0.22,
+        diffuse_plane: f32 = 0.88,
+        diffuse_wall: f32 = 0.90,
+        player_height: f32 = 0.9,
+        light_height_bias: f32 = 0.5,
+        fog: FogSettings = .{},
+        emissives: []Emissive = &[_]Emissive{},
+        specular: SpecularSettings = .{},
+    };
+
+    pub const FogSettings = struct { enabled: bool = false, color: [3]f32 = .{ 0.0, 0.0, 0.0 }, density: f32 = 0.04 };
+    pub const Emissive = struct { index: u32, intensity: f32 };
+    pub const SpecularSettings = struct { enabled: bool = false, power: f32 = 16.0, strength: f32 = 0.3 };
 
     pub fn initEmpty(allocator: std.mem.Allocator) !Self {
         return .{
@@ -145,7 +199,6 @@ pub const Map = struct {
                     1 => Tile.Kind.Wall,
                     else => Tile.Kind.Empty,
                 };
-
                 data[row * width + col] = Tile.init(kind, if (tile.texture) |texture| @intCast(texture) else null);
             }
         }
@@ -158,19 +211,81 @@ pub const Map = struct {
 
         const ambient = parsed.value.lightning.ambient;
 
-        var point_lights = std.ArrayList(PointLight).init(allocator);
+        var lights = std.ArrayList(Light).init(allocator);
 
-        for (parsed.value.lightning.point_lights) |light| {
-            try lights.append(
-                Light.init(
-                    kind,
-                    Vec3.init(light.position[0], light.position[1], light.position[2]),
+        for (parsed.value.lightning.lights) |light| {
+            if (std.mem.eql(u8, light.type, "point")) {
+                var attenuation: Light.Attenuation = .{
+                    .quadratic = .{
+                        .linear = 0.35,
+                        .quadratic = 0.20,
+                    },
+                };
+
+                if (light.attenuation) |att| {
+                    if (std.mem.eql(u8, att.type, "quadratic")) {
+                        attenuation = .{
+                            .quadratic = .{
+                                .linear = att.linear orelse 0.35,
+                                .quadratic = att.quadratic orelse 0.20,
+                            },
+                        };
+                    } else if (std.mem.eql(u8, att.type, "radial")) {
+                        attenuation = .{
+                            .radial = .{
+                                .radius = att.radius orelse 1.0,
+                            },
+                        };
+                    }
+                }
+
+                const pl = Light.PointLight.init(
+                    Vec3.init(light.position.?[0], light.position.?[1], light.position.?[2]),
                     light.color,
-                ),
-            );
+                    light.intensity,
+                    attenuation,
+                    light.casts_shadows,
+                    light.enabled,
+                );
+
+                try lights.append(.{ .point = pl });
+            } else if (std.mem.eql(u8, light.type, "directional")) {
+                const dl = Light.DirectionalLight.init(
+                    Vec3.init(light.direction.?[0], light.direction.?[1], light.direction.?[2]),
+                    light.color,
+                    light.intensity,
+                    light.casts_shadows,
+                    light.enabled,
+                );
+
+                try lights.append(.{ .directional = dl });
+            }
         }
 
-        const lightning = Lightning.init(ambient, point_lights);
+        const lightning = Lightning.init(ambient, lights);
+
+        // Render settings defaults
+        var render_settings: RenderSettings = .{};
+        if (parsed.value.render) |r| {
+            if (r.ambient_plane) |v| render_settings.ambient_plane = v;
+            if (r.diffuse_plane) |v| render_settings.diffuse_plane = v;
+            if (r.diffuse_wall) |v| render_settings.diffuse_wall = v;
+            if (r.player_height) |v| render_settings.player_height = v;
+            if (r.light_height_bias) |v| render_settings.light_height_bias = v;
+            if (r.fog) |f| {
+                render_settings.fog = .{ .enabled = f.enabled, .color = f.color, .density = f.density };
+            }
+            if (r.specular) |s| {
+                render_settings.specular = .{ .enabled = s.enabled, .power = s.power, .strength = s.strength };
+            }
+            if (r.emissive_textures) |arr| {
+                var list = try allocator.alloc(Emissive, arr.len);
+                for (arr, 0..) |e, i| {
+                    list[i] = .{ .index = @intCast(e.index), .intensity = e.intensity };
+                }
+                render_settings.emissives = list;
+            }
+        }
 
         return .{
             .allocator = allocator,
@@ -181,11 +296,13 @@ pub const Map = struct {
             .floor = @intCast(parsed.value.floor.texture),
             .textures = textures,
             .lightning = lightning,
+            .render_settings = render_settings,
         };
     }
 
     pub fn deinit(self: Self) void {
         self.allocator.free(self.data);
+        if (self.render_settings.emissives.len > 0) self.allocator.free(self.render_settings.emissives);
     }
 
     pub fn getTile(self: Self, x: i32, y: i32) Tile {

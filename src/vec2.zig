@@ -39,6 +39,10 @@ pub const Vec2 = struct {
         return a.x * b.x + a.y * b.y;
     }
 
+    pub fn neg(self: Self) Self {
+        return .{ .x = -self.x, .y = -self.y };
+    }
+
     pub fn rotate(self: *Self, amount: f32) void {
         const old_x = self.x;
         self.x = self.x * @cos(amount) - self.y * @sin(amount);

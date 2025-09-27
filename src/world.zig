@@ -50,6 +50,7 @@ const Player = @import("player.zig").Player;
 const Camera = @import("camera.zig").Camera;
 const Tile = @import("map.zig").Tile;
 const Texture = @import("texture.zig").Texture;
+const lighting = @import("lighting.zig");
 
 // TODO: Move these helper functions to a utility file
 fn f32ToI32(value: f32) i32 {
@@ -73,6 +74,8 @@ fn sample(texture: []u8, x: usize, y: usize) [4]u8 {
     };
 }
 
+// Lighting helpers moved to lighting.zig
+
 pub const World = struct {
     const Self = @This();
 
@@ -80,8 +83,6 @@ pub const World = struct {
     map: Map,
     player: Player,
     camera: Camera,
-    light_dir: Vec2,
-    point_pos: Vec2,
 
     pub fn init(allocator: std.mem.Allocator, map_source: MapSource) !Self {
         const map = switch (map_source) {
@@ -103,8 +104,6 @@ pub const World = struct {
             .map = map,
             .player = player,
             .camera = camera,
-            .light_dir = Vec2.init(0.2, 0.6).normalize(),
-            .point_pos = Vec2.init(4.5, 4.5),
         };
     }
 
@@ -199,7 +198,17 @@ pub const World = struct {
         const screen_width_f32: f32 = @floatFromInt(screen_width);
         const half_screen_height = uToI32(screen_height) >> 1;
 
-        for (0..screen_height) |y_usize| {
+        // Dynamic render settings
+        const rs = self.map.render_settings;
+
+        // Plane & wall lighting (colored): ambient + per-light diffuse with attenuation.
+        const ambient_color = self.map.lightning.ambient;
+        const base_ambient_r: f32 = ambient_color[0] * rs.ambient_plane;
+        const base_ambient_g: f32 = ambient_color[1] * rs.ambient_plane;
+        const base_ambient_b: f32 = ambient_color[2] * rs.ambient_plane;
+
+        // Iterate only bottom half and mirror for ceiling.
+        for (@as(usize, @intCast(half_screen_height + 1))..screen_height) |y_usize| {
             const y: u32 = @intCast(y_usize);
 
             const ray_dir_0 = Vec2.init(
@@ -212,7 +221,7 @@ pub const World = struct {
             );
 
             const position_y = @as(i32, @intCast(y)) - half_screen_height;
-            if (position_y == 0) continue;
+            if (position_y == 0) continue; // Should not happen because we start at half + 1
             const position_z: f32 = @floatFromInt(half_screen_height);
 
             const row_distance = position_z / @as(f32, @floatFromInt(position_y));
@@ -224,125 +233,78 @@ pub const World = struct {
             var floor_y = self.player.position.y + row_distance * ray_dir_0.y;
 
             for (0..screen_width) |x_usize| {
+                // Fractional cell coordinates for texture sampling
                 const cell_x = @floor(floor_x);
                 const cell_y = @floor(floor_y);
-
                 const frac_x = floor_x - cell_x;
                 const frac_y = floor_y - cell_y;
 
                 var texture_x: u32 = @intFromFloat(@floor(frac_x * 64.0));
                 var texture_y: u32 = @intFromFloat(@floor(frac_y * 64.0));
-
                 texture_x &= 64 - 1;
                 texture_y &= 64 - 1;
 
+                // Advance for next column before we potentially continue
                 floor_x += floor_step_x;
                 floor_y += floor_step_y;
 
-                const point_height = 0.9;
-                const ceiling_height = 1.0;
+                // WORLD POSITIONS (z planes)
+                const floor_world_z: f32 = 0.0;
+                const ceiling_height: f32 = 1.0; // consistent with wall code assumptions
+                const ceiling_world_z: f32 = ceiling_height;
+                const world_x: f32 = @floatCast(cell_x + frac_x);
+                const world_y: f32 = @floatCast(cell_y + frac_y);
 
-                // constants for plane lighting (tweak to taste)
-                const k1: f32 = 0.35;
-                const k2: f32 = 0.20;
-                const ambient_plane: f32 = 0.22;
-                const diffuse_plane: f32 = 0.88;
-
-                // ===== FLOOR =====
+                // Floor lighting
+                const floor_acc = lighting.accumulatePlaneLights(self.map.lightning.lights.items, 1.0, world_x, world_y, floor_world_z, rs.diffuse_plane);
+                const floor_factor_r = std.math.clamp(base_ambient_r + floor_acc.r, 0.0, 1.0);
+                const floor_factor_g = std.math.clamp(base_ambient_g + floor_acc.g, 0.0, 1.0);
+                const floor_factor_b = std.math.clamp(base_ambient_b + floor_acc.b, 0.0, 1.0);
                 const floor_texture_data = self.map.textures.items[self.map.floor].data;
                 const floor_color = sample(floor_texture_data, texture_x, texture_y);
-
-                // world point on floor plane (z = 0)
-                const dx_f = self.point_pos.x - floor_x;
-                const dy_f = self.point_pos.y - floor_y;
-                const dz_f = point_height - 0.0;
-
-                const d2_f: f32 = dx_f * dx_f + dy_f * dy_f + dz_f * dz_f;
-                const d_f: f32 = @sqrt(d2_f) + 1e-4;
-
-                // Lambert against floor normal (0,0,1) = take vertical component of L
-                const Lz_f: f32 = dz_f / d_f;
-                const lambert_f: f32 = @max(0.0, Lz_f);
-
-                // Quadratic attenuation
-                const att_f: f32 = 1.0 / (1.0 + k1 * d_f + k2 * d2_f);
-
-                // Final floor light factor
-                const floor_light: f32 =
-                    std.math.clamp(ambient_plane + diffuse_plane * lambert_f, 0.0, 1.0) * att_f;
-
-                // Optionally keep your base darkening then apply light
-                const fr = @min(255.0, @as(f32, @floatFromInt(floor_color[0])) * 0.5 * floor_light);
-                const fg = @min(255.0, @as(f32, @floatFromInt(floor_color[1])) * 0.5 * floor_light);
-                const fb = @min(255.0, @as(f32, @floatFromInt(floor_color[2])) * 0.5 * floor_light);
-
+                const emissive_floor = lighting.getEmissiveIntensity(@intCast(self.map.floor), rs);
+                const fr = @min(255.0, @as(f32, @floatFromInt(floor_color[0])) * (floor_factor_r + emissive_floor));
+                const fg = @min(255.0, @as(f32, @floatFromInt(floor_color[1])) * (floor_factor_g + emissive_floor));
+                const fb = @min(255.0, @as(f32, @floatFromInt(floor_color[2])) * (floor_factor_b + emissive_floor));
+                const fogged_floor = lighting.applyFog(rs.fog.enabled, rs.fog.color, rs.fog.density, row_distance, fr, fg, fb);
                 texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
-                    .r = fr / 255.0,
-                    .g = fg / 255.0,
-                    .b = fb / 255.0,
+                    .r = fogged_floor[0] / 255.0,
+                    .g = fogged_floor[1] / 255.0,
+                    .b = fogged_floor[2] / 255.0,
                     .a = @as(f32, @floatFromInt(floor_color[3])) / 255.0,
                 });
 
-                // ===== CEILING =====
+                // Ceiling lighting (fallback tints with floor if totally dark)
+                const ceiling_acc = lighting.accumulatePlaneLights(self.map.lightning.lights.items, -1.0, world_x, world_y, ceiling_world_z, rs.diffuse_plane);
+                var ceiling_factor_r = base_ambient_r + ceiling_acc.r;
+                var ceiling_factor_g = base_ambient_g + ceiling_acc.g;
+                var ceiling_factor_b = base_ambient_b + ceiling_acc.b;
+                if (ceiling_acc.r == 0.0 and ceiling_acc.g == 0.0 and ceiling_acc.b == 0.0) {
+                    // use floor_acc for fallback tint
+                    ceiling_factor_r = base_ambient_r + floor_acc.r * 0.7;
+                    ceiling_factor_g = base_ambient_g + floor_acc.g * 0.7;
+                    ceiling_factor_b = base_ambient_b + floor_acc.b * 0.7;
+                }
+                ceiling_factor_r = std.math.clamp(ceiling_factor_r, 0.0, 1.0);
+                ceiling_factor_g = std.math.clamp(ceiling_factor_g, 0.0, 1.0);
+                ceiling_factor_b = std.math.clamp(ceiling_factor_b, 0.0, 1.0);
                 const ceiling_texture_data = self.map.textures.items[self.map.ceiling].data;
                 const ceiling_color = sample(ceiling_texture_data, texture_x, texture_y);
-
-                // world point on ceiling plane (z = ceiling_height)
-                const dz_c = point_height - ceiling_height;
-
-                const d2_c: f32 = dx_f * dx_f + dy_f * dy_f + dz_c * dz_c;
-                const d_c: f32 = @sqrt(d2_c) + 1e-4;
-
-                // Lambert against ceiling normal (0,0,-1): take -Lz
-                const Lz_c: f32 = dz_c / d_c;
-                const lambert_c: f32 = @max(0.0, -Lz_c);
-
-                const att_c: f32 = 1.0 / (1.0 + k1 * d_c + k2 * d2_c);
-
-                const ceil_light: f32 =
-                    std.math.clamp(ambient_plane + diffuse_plane * lambert_c, 0.0, 1.0) * att_c;
-
-                const cr = @min(255.0, @as(f32, @floatFromInt(ceiling_color[0])) * ceil_light);
-                const cg = @min(255.0, @as(f32, @floatFromInt(ceiling_color[1])) * ceil_light);
-                const cb = @min(255.0, @as(f32, @floatFromInt(ceiling_color[2])) * ceil_light);
-
+                const emissive_ceiling = lighting.getEmissiveIntensity(@intCast(self.map.ceiling), rs);
+                const cr = @min(255.0, @as(f32, @floatFromInt(ceiling_color[0])) * (ceiling_factor_r + emissive_ceiling));
+                const cg = @min(255.0, @as(f32, @floatFromInt(ceiling_color[1])) * (ceiling_factor_g + emissive_ceiling));
+                const cb = @min(255.0, @as(f32, @floatFromInt(ceiling_color[2])) * (ceiling_factor_b + emissive_ceiling));
+                const fogged_ceiling = lighting.applyFog(rs.fog.enabled, rs.fog.color, rs.fog.density, row_distance, cr, cg, cb);
                 texture_buffer.drawPixel(
                     @intCast(x_usize),
                     @as(i32, @intCast(screen_height)) - @as(i32, @intCast(y)) - 1,
                     .{
-                        .r = cr / 255.0,
-                        .g = cg / 255.0,
-                        .b = cb / 255.0,
+                        .r = fogged_ceiling[0] / 255.0,
+                        .g = fogged_ceiling[1] / 255.0,
+                        .b = fogged_ceiling[2] / 255.0,
                         .a = @as(f32, @floatFromInt(ceiling_color[3])) / 255.0,
                     },
                 );
-                // const floor_texture_data = self.map.textures.items[self.map.floor].data;
-                // var floor_color = sample(floor_texture_data, texture_x, texture_y);
-                //
-                // floor_color[0] /= 2;
-                // floor_color[1] /= 2;
-                // floor_color[2] /= 2;
-                //
-                // texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
-                //     .r = @as(f32, @floatFromInt(floor_color[0])) / 255.0,
-                //     .g = @as(f32, @floatFromInt(floor_color[1])) / 255.0,
-                //     .b = @as(f32, @floatFromInt(floor_color[2])) / 255.0,
-                //     .a = @as(f32, @floatFromInt(floor_color[3])) / 255.0,
-                // });
-                //
-                // const ceiling_texture_data = self.map.textures.items[self.map.ceiling].data;
-                // var ceiling_color = sample(ceiling_texture_data, texture_x, texture_y);
-                //
-                // ceiling_color[0] /= 1;
-                // ceiling_color[1] /= 1;
-                // ceiling_color[2] /= 1;
-                //
-                // texture_buffer.drawPixel(@intCast(x_usize), @as(i32, @intCast(screen_height)) - @as(i32, @intCast(y)) - 1, .{
-                //     .r = @as(f32, @floatFromInt(ceiling_color[0])) / 255.0,
-                //     .g = @as(f32, @floatFromInt(ceiling_color[1])) / 255.0,
-                //     .b = @as(f32, @floatFromInt(ceiling_color[2])) / 255.0,
-                //     .a = @as(f32, @floatFromInt(ceiling_color[3])) / 255.0,
-                // });
             }
         }
 
@@ -443,29 +405,63 @@ pub const World = struct {
                 const step_y = 1.0 * 64 / @as(f32, @floatFromInt(line_height));
                 var texture_position = @as(f32, @floatFromInt(draw_start - half_screen_height + half_line_height)) * step_y;
 
-                var n: Vec2 = if (side == 0)
+                const n: Vec2 = if (side == 0)
                     Vec2.init(-step.x, 0.0)
                 else
                     Vec2.init(0.0, -step.y);
 
-                // directional light
-                const ambient = 0.1;
-                const diffuse = 0.5;
+                // Wall lighting
+                const hit_point = self.player.position.add(ray_dir.mulScalar(perp_wall_dist));
+                var wall_acc = lighting.accumulateWallLights(
+                    self.map.lightning.lights.items,
+                    n,
+                    hit_point,
+                    rs.player_height,
+                    rs.light_height_bias,
+                    rs.diffuse_wall,
+                );
+                wall_acc.r += base_ambient_r;
+                wall_acc.g += base_ambient_g;
+                wall_acc.b += base_ambient_b;
 
-                const lambert = @max(0.0, n.dot(self.light_dir));
-                const falloff = 1.0;
-                const light = @min(1.0, ambient + diffuse * lambert) * falloff;
-
-                // point light
-                const p = self.player.position.add(ray_dir.mulScalar(perp_wall_dist));
-                const l = self.point_pos.sub(p).normalize();
-                const d = self.point_pos.sub(p).len();
-                const la = @max(0.0, n.dot(l));
-                const att: f32 = 1.0 / (1.0 + 0.35 * d + 0.20 * d * d);
-
-                const light2 = std.math.clamp(0.1 + la * att, 0.0, 1.0);
-
-                const sum_light = std.math.clamp(light + light2, 0, 1);
+                // Specular highlight (basic Blinn-Phong for point lights only)
+                if (rs.specular.enabled) {
+                    const view_vec = self.player.position.sub(hit_point).normalize();
+                    for (self.map.lightning.lights.items) |light| {
+                        switch (light) {
+                            .point => |pl| {
+                                if (!pl.enabled) continue;
+                                const dx = pl.position.x - hit_point.x;
+                                const dy = pl.position.y - hit_point.y;
+                                const dz = rs.player_height - rs.light_height_bias; // same vertical approximation
+                                const d2: f32 = dx * dx + dy * dy + dz * dz;
+                                const d: f32 = @sqrt(d2) + 1e-4;
+                                var att: f32 = 1.0;
+                                switch (pl.attenuation) {
+                                    .quadratic => |qa| {
+                                        att = 1.0 / (1.0 + qa.linear * d + qa.quadratic * d2);
+                                    },
+                                    .radial => |ra| {
+                                        att = if (d > ra.radius) 0.0 else 1.0;
+                                    },
+                                }
+                                const light_dir = Vec2.init(dx / d, dy / d);
+                                const half_vec_un = Vec2.init(light_dir.x + view_vec.x, light_dir.y + view_vec.y);
+                                const half_len = @max(half_vec_un.len(), 1e-5);
+                                const half_vec = Vec2.init(half_vec_un.x / half_len, half_vec_un.y / half_len);
+                                const spec_angle = @max(0.0, n.x * half_vec.x + n.y * half_vec.y);
+                                if (spec_angle > 0.0) {
+                                    const spec = std.math.pow(f32, spec_angle, rs.specular.power) * rs.specular.strength * pl.intensity * att;
+                                    wall_acc.r += pl.color[0] * spec;
+                                    wall_acc.g += pl.color[1] * spec;
+                                    wall_acc.b += pl.color[2] * spec;
+                                }
+                            },
+                            .directional => |_| {},
+                        }
+                    }
+                }
+                wall_acc.clamp01();
 
                 for (@intCast(draw_start)..@intCast(draw_end)) |y| {
                     const texture_y: u32 = @as(u32, @intFromFloat(texture_position)) & (64 - 1);
@@ -474,14 +470,15 @@ pub const World = struct {
                     const texture_data = self.map.textures.items[tile.texture.?].data;
                     const texture_color = sample(texture_data, texture_x, texture_y);
 
-                    const lr = @min(255.0, @as(f32, @floatFromInt(texture_color[0])) * sum_light);
-                    const lg = @min(255.0, @as(f32, @floatFromInt(texture_color[1])) * sum_light);
-                    const lb = @min(255.0, @as(f32, @floatFromInt(texture_color[2])) * sum_light);
-
+                    const emissive_wall = if (tile.texture) |ti| lighting.getEmissiveIntensity(ti, rs) else 0.0;
+                    const lr0 = @min(255.0, @as(f32, @floatFromInt(texture_color[0])) * (wall_acc.r + emissive_wall));
+                    const lg0 = @min(255.0, @as(f32, @floatFromInt(texture_color[1])) * (wall_acc.g + emissive_wall));
+                    const lb0 = @min(255.0, @as(f32, @floatFromInt(texture_color[2])) * (wall_acc.b + emissive_wall));
+                    const fogged_wall = lighting.applyFog(rs.fog.enabled, rs.fog.color, rs.fog.density, perp_wall_dist, lr0, lg0, lb0);
                     texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
-                        .r = lr / 255.0,
-                        .g = lg / 255.0,
-                        .b = lb / 255.0,
+                        .r = fogged_wall[0] / 255.0,
+                        .g = fogged_wall[1] / 255.0,
+                        .b = fogged_wall[2] / 255.0,
                         .a = @as(f32, @floatFromInt(texture_color[3])) / 255.0,
                     });
                 }

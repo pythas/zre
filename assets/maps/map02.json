@@ -12,15 +12,25 @@
     ],
     "lightning": {
         "ambient": [0.10, 0.10, 0.12],
-        "point_lights": [
+        "lights": [
             {
+                "type": "point",
                 "position": [4.5, 4.5, 1.0],
-                "color": [1.0, 1.0, 0.2]
+                "color": [1.0, 1.0, 0.2],
                 "intensity": 1.0,
-                "quadratic_attenuation": {
+                "attenuation": {
+                    "type": "quadratic",
                     "linear": 0.35,
-                    "quadratic": 0.20,
+                    "quadratic": 0.20
                 },
+                "casts_shadows": false,
+                "enabled": true
+            },
+            {
+                "type": "directional",
+                "direction": [1.0, 1.0, -1.0],
+                "color": [0.8, 0.8, 1.0],
+                "intensity": 0.3,
                 "casts_shadows": false,
                 "enabled": true
             }
@@ -30,20 +40,20 @@
     "floor": {"texture": 1},
     "tiles": [
         [{"kind": 1, "texture": 3}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 1, "texture": 3}, {"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 4}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 1, "texture": 2}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 1, "texture": 2}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 1, "texture": 2}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 4}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
+        [{"kind": 1, "texture": 3}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 0}, {"kind": 1, "texture": 2}],
         [{"kind": 1, "texture": 3}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}]
     ]
 }
