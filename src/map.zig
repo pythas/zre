@@ -2,6 +2,8 @@ const std = @import("std");
 const zstbi = @import("zstbi");
 
 const Texture = @import("texture.zig").Texture;
+const PointLight = @import("point_light.zig").PointLight;
+const Vec3 = @import("vec3.zig").Vec3;
 
 pub const Tile = struct {
     const Self = @This();
@@ -36,6 +38,27 @@ const JsonTexture = struct {
     height: i32,
 };
 
+const JsonLightning = struct {
+    ambient: [3]f32,
+    point_lights: []JsonPointLight,
+};
+
+const JsonQuadraticAttenuation = struct {
+    linear: f32,
+    quadratic: f32,
+};
+
+const JsonPointLight = struct {
+    position: [3]f32,
+    color: [3]f32,
+    intensity: f32,
+    quadratic_attenuation: ?JsonQuadraticAttenuation,
+    casts_shadows: bool,
+    enabled: bool,
+};
+
+// const JsonDirectionalLight = struct {};
+
 const JsonCeiling = struct {
     texture: i32,
 };
@@ -53,9 +76,24 @@ const JsonMap = struct {
     width: i32,
     height: i32,
     textures: []JsonTexture,
+    lightning: JsonLightning,
     ceiling: JsonCeiling,
     floor: JsonFloor,
     tiles: [][]JsonTile,
+};
+
+pub const Lightning = struct {
+    const Self = @This();
+
+    ambient: [3]f32,
+    point_lights: std.ArrayList(PointLight),
+
+    pub fn init(ambient: [3]f32, point_lights: std.ArrayList(PointLight)) Self {
+        return .{
+            .ambient = ambient,
+            .point_lights = point_lights,
+        };
+    }
 };
 
 pub const Map = struct {
@@ -68,6 +106,7 @@ pub const Map = struct {
     ceiling: usize,
     floor: usize,
     textures: std.ArrayList(Texture),
+    lightning: Lightning,
 
     pub fn initEmpty(allocator: std.mem.Allocator) !Self {
         return .{
@@ -117,6 +156,22 @@ pub const Map = struct {
             try textures.append(try Texture.init(allocator, texture.path));
         }
 
+        const ambient = parsed.value.lightning.ambient;
+
+        var point_lights = std.ArrayList(PointLight).init(allocator);
+
+        for (parsed.value.lightning.point_lights) |light| {
+            try lights.append(
+                Light.init(
+                    kind,
+                    Vec3.init(light.position[0], light.position[1], light.position[2]),
+                    light.color,
+                ),
+            );
+        }
+
+        const lightning = Lightning.init(ambient, point_lights);
+
         return .{
             .allocator = allocator,
             .width = width,
@@ -125,6 +180,7 @@ pub const Map = struct {
             .ceiling = @intCast(parsed.value.ceiling.texture),
             .floor = @intCast(parsed.value.floor.texture),
             .textures = textures,
+            .lightning = lightning,
         };
     }
 

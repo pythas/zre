@@ -36,7 +36,7 @@ pub const Vec2 = struct {
     }
 
     pub fn dot(a: Self, b: Vec2) f32 {
-        return a.x * b.y + a.y * b.x;
+        return a.x * b.x + a.y * b.y;
     }
 
     pub fn rotate(self: *Self, amount: f32) void {

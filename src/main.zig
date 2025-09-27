@@ -19,11 +19,9 @@ pub fn main() !void {
 
     const renderer = try Renderer.init(gpa, window);
     defer renderer.deinit(gpa);
-    // zstbi.init(allocator);
-    // defer zstbi.deinit();
 
     var game = try GameMode.init(gpa, renderer.gctx, .{
-        .map_source = .{ .path = "assets/maps/map01.json" },
+        .map_source = .{ .path = "assets/maps/map02.json" },
         .bind_group_layout = renderer.bind_group_layout,
         .uniforms_buffer = renderer.uniforms_buffer,
         .pipeline = renderer.pipeline,

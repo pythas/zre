@@ -81,6 +81,7 @@ pub const World = struct {
     player: Player,
     camera: Camera,
     light_dir: Vec2,
+    point_pos: Vec2,
 
     pub fn init(allocator: std.mem.Allocator, map_source: MapSource) !Self {
         const map = switch (map_source) {
@@ -103,6 +104,7 @@ pub const World = struct {
             .player = player,
             .camera = camera,
             .light_dir = Vec2.init(0.2, 0.6).normalize(),
+            .point_pos = Vec2.init(4.5, 4.5),
         };
     }
 
@@ -237,33 +239,110 @@ pub const World = struct {
                 floor_x += floor_step_x;
                 floor_y += floor_step_y;
 
-                const floor_texture_data = self.map.textures.items[self.map.floor].data;
-                var floor_color = sample(floor_texture_data, texture_x, texture_y);
+                const point_height = 0.9;
+                const ceiling_height = 1.0;
 
-                floor_color[0] /= 2;
-                floor_color[1] /= 2;
-                floor_color[2] /= 2;
+                // constants for plane lighting (tweak to taste)
+                const k1: f32 = 0.35;
+                const k2: f32 = 0.20;
+                const ambient_plane: f32 = 0.22;
+                const diffuse_plane: f32 = 0.88;
+
+                // ===== FLOOR =====
+                const floor_texture_data = self.map.textures.items[self.map.floor].data;
+                const floor_color = sample(floor_texture_data, texture_x, texture_y);
+
+                // world point on floor plane (z = 0)
+                const dx_f = self.point_pos.x - floor_x;
+                const dy_f = self.point_pos.y - floor_y;
+                const dz_f = point_height - 0.0;
+
+                const d2_f: f32 = dx_f * dx_f + dy_f * dy_f + dz_f * dz_f;
+                const d_f: f32 = @sqrt(d2_f) + 1e-4;
+
+                // Lambert against floor normal (0,0,1) = take vertical component of L
+                const Lz_f: f32 = dz_f / d_f;
+                const lambert_f: f32 = @max(0.0, Lz_f);
+
+                // Quadratic attenuation
+                const att_f: f32 = 1.0 / (1.0 + k1 * d_f + k2 * d2_f);
+
+                // Final floor light factor
+                const floor_light: f32 =
+                    std.math.clamp(ambient_plane + diffuse_plane * lambert_f, 0.0, 1.0) * att_f;
+
+                // Optionally keep your base darkening then apply light
+                const fr = @min(255.0, @as(f32, @floatFromInt(floor_color[0])) * 0.5 * floor_light);
+                const fg = @min(255.0, @as(f32, @floatFromInt(floor_color[1])) * 0.5 * floor_light);
+                const fb = @min(255.0, @as(f32, @floatFromInt(floor_color[2])) * 0.5 * floor_light);
 
                 texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
-                    .r = @as(f32, @floatFromInt(floor_color[0])) / 255.0,
-                    .g = @as(f32, @floatFromInt(floor_color[1])) / 255.0,
-                    .b = @as(f32, @floatFromInt(floor_color[2])) / 255.0,
+                    .r = fr / 255.0,
+                    .g = fg / 255.0,
+                    .b = fb / 255.0,
                     .a = @as(f32, @floatFromInt(floor_color[3])) / 255.0,
                 });
 
+                // ===== CEILING =====
                 const ceiling_texture_data = self.map.textures.items[self.map.ceiling].data;
-                var ceiling_color = sample(ceiling_texture_data, texture_x, texture_y);
+                const ceiling_color = sample(ceiling_texture_data, texture_x, texture_y);
 
-                ceiling_color[0] /= 1;
-                ceiling_color[1] /= 1;
-                ceiling_color[2] /= 1;
+                // world point on ceiling plane (z = ceiling_height)
+                const dz_c = point_height - ceiling_height;
 
-                texture_buffer.drawPixel(@intCast(x_usize), @as(i32, @intCast(screen_height)) - @as(i32, @intCast(y)) - 1, .{
-                    .r = @as(f32, @floatFromInt(ceiling_color[0])) / 255.0,
-                    .g = @as(f32, @floatFromInt(ceiling_color[1])) / 255.0,
-                    .b = @as(f32, @floatFromInt(ceiling_color[2])) / 255.0,
-                    .a = @as(f32, @floatFromInt(ceiling_color[3])) / 255.0,
-                });
+                const d2_c: f32 = dx_f * dx_f + dy_f * dy_f + dz_c * dz_c;
+                const d_c: f32 = @sqrt(d2_c) + 1e-4;
+
+                // Lambert against ceiling normal (0,0,-1): take -Lz
+                const Lz_c: f32 = dz_c / d_c;
+                const lambert_c: f32 = @max(0.0, -Lz_c);
+
+                const att_c: f32 = 1.0 / (1.0 + k1 * d_c + k2 * d2_c);
+
+                const ceil_light: f32 =
+                    std.math.clamp(ambient_plane + diffuse_plane * lambert_c, 0.0, 1.0) * att_c;
+
+                const cr = @min(255.0, @as(f32, @floatFromInt(ceiling_color[0])) * ceil_light);
+                const cg = @min(255.0, @as(f32, @floatFromInt(ceiling_color[1])) * ceil_light);
+                const cb = @min(255.0, @as(f32, @floatFromInt(ceiling_color[2])) * ceil_light);
+
+                texture_buffer.drawPixel(
+                    @intCast(x_usize),
+                    @as(i32, @intCast(screen_height)) - @as(i32, @intCast(y)) - 1,
+                    .{
+                        .r = cr / 255.0,
+                        .g = cg / 255.0,
+                        .b = cb / 255.0,
+                        .a = @as(f32, @floatFromInt(ceiling_color[3])) / 255.0,
+                    },
+                );
+                // const floor_texture_data = self.map.textures.items[self.map.floor].data;
+                // var floor_color = sample(floor_texture_data, texture_x, texture_y);
+                //
+                // floor_color[0] /= 2;
+                // floor_color[1] /= 2;
+                // floor_color[2] /= 2;
+                //
+                // texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
+                //     .r = @as(f32, @floatFromInt(floor_color[0])) / 255.0,
+                //     .g = @as(f32, @floatFromInt(floor_color[1])) / 255.0,
+                //     .b = @as(f32, @floatFromInt(floor_color[2])) / 255.0,
+                //     .a = @as(f32, @floatFromInt(floor_color[3])) / 255.0,
+                // });
+                //
+                // const ceiling_texture_data = self.map.textures.items[self.map.ceiling].data;
+                // var ceiling_color = sample(ceiling_texture_data, texture_x, texture_y);
+                //
+                // ceiling_color[0] /= 1;
+                // ceiling_color[1] /= 1;
+                // ceiling_color[2] /= 1;
+                //
+                // texture_buffer.drawPixel(@intCast(x_usize), @as(i32, @intCast(screen_height)) - @as(i32, @intCast(y)) - 1, .{
+                //     .r = @as(f32, @floatFromInt(ceiling_color[0])) / 255.0,
+                //     .g = @as(f32, @floatFromInt(ceiling_color[1])) / 255.0,
+                //     .b = @as(f32, @floatFromInt(ceiling_color[2])) / 255.0,
+                //     .a = @as(f32, @floatFromInt(ceiling_color[3])) / 255.0,
+                // });
             }
         }
 
@@ -364,6 +443,30 @@ pub const World = struct {
                 const step_y = 1.0 * 64 / @as(f32, @floatFromInt(line_height));
                 var texture_position = @as(f32, @floatFromInt(draw_start - half_screen_height + half_line_height)) * step_y;
 
+                var n: Vec2 = if (side == 0)
+                    Vec2.init(-step.x, 0.0)
+                else
+                    Vec2.init(0.0, -step.y);
+
+                // directional light
+                const ambient = 0.1;
+                const diffuse = 0.5;
+
+                const lambert = @max(0.0, n.dot(self.light_dir));
+                const falloff = 1.0;
+                const light = @min(1.0, ambient + diffuse * lambert) * falloff;
+
+                // point light
+                const p = self.player.position.add(ray_dir.mulScalar(perp_wall_dist));
+                const l = self.point_pos.sub(p).normalize();
+                const d = self.point_pos.sub(p).len();
+                const la = @max(0.0, n.dot(l));
+                const att: f32 = 1.0 / (1.0 + 0.35 * d + 0.20 * d * d);
+
+                const light2 = std.math.clamp(0.1 + la * att, 0.0, 1.0);
+
+                const sum_light = std.math.clamp(light + light2, 0, 1);
+
                 for (@intCast(draw_start)..@intCast(draw_end)) |y| {
                     const texture_y: u32 = @as(u32, @intFromFloat(texture_position)) & (64 - 1);
                     texture_position += step_y;
@@ -371,27 +474,9 @@ pub const World = struct {
                     const texture_data = self.map.textures.items[tile.texture.?].data;
                     const texture_color = sample(texture_data, texture_x, texture_y);
 
-                    var n = Vec2.init(0.0, 0.0);
-
-                    if (side == 0) {
-                        n.x = -step.x;
-                        n.y = 0.0;
-                    } else {
-                        n.x = 0.0;
-                        n.y = -step.y;
-                    }
-
-                    // directional light
-                    const ambient = 0.1;
-                    const diffuse = 0.5;
-
-                    const lambert = @max(0, n.dot(self.light_dir));
-                    const falloff = 1.0;
-                    const light = @min(1.0, ambient + diffuse * lambert) * falloff;
-
-                    const lr = @min(255.0, @as(f32, @floatFromInt(texture_color[0])) * light);
-                    const lg = @min(255.0, @as(f32, @floatFromInt(texture_color[1])) * light);
-                    const lb = @min(255.0, @as(f32, @floatFromInt(texture_color[2])) * light);
+                    const lr = @min(255.0, @as(f32, @floatFromInt(texture_color[0])) * sum_light);
+                    const lg = @min(255.0, @as(f32, @floatFromInt(texture_color[1])) * sum_light);
+                    const lb = @min(255.0, @as(f32, @floatFromInt(texture_color[2])) * sum_light);
 
                     texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
                         .r = lr / 255.0,
