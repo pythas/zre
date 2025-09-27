@@ -3,16 +3,59 @@ const zstbi = @import("zstbi");
 
 const Texture = @import("texture.zig").Texture;
 
-pub const Tile = enum(u8) {
-    Empty = 0,
-    Wall = 1,
-    AnotherWall = 2,
+pub const Tile = struct {
+    const Self = @This();
+
+    pub const Kind = enum(u8) {
+        Empty = 0,
+        Wall = 1,
+        AnotherWall = 2,
+    };
+
+    kind: Kind,
+    texture: ?u8,
+
+    pub fn init(kind: Kind, texture: ?u8) Self {
+        return .{
+            .kind = kind,
+            .texture = texture,
+        };
+    }
+
+    pub fn initEmpty() Self {
+        return .{
+            .kind = .Empty,
+            .texture = null,
+        };
+    }
+};
+
+const JsonTexture = struct {
+    path: []const u8,
+    width: i32,
+    height: i32,
+};
+
+const JsonCeiling = struct {
+    texture: i32,
+};
+
+const JsonFloor = struct {
+    texture: i32,
+};
+
+const JsonTile = struct {
+    kind: i32,
+    texture: ?i32 = null,
 };
 
 const JsonMap = struct {
     width: i32,
     height: i32,
-    tiles: [][]i32,
+    textures: []JsonTexture,
+    ceiling: JsonCeiling,
+    floor: JsonFloor,
+    tiles: [][]JsonTile,
 };
 
 pub const Map = struct {
@@ -22,7 +65,8 @@ pub const Map = struct {
     width: usize,
     height: usize,
     data: []Tile,
-    // textures: std.ArrayList([]u8),
+    ceiling: usize,
+    floor: usize,
     textures: std.ArrayList(Texture),
 
     pub fn initEmpty(allocator: std.mem.Allocator) !Self {
@@ -54,17 +98,23 @@ pub const Map = struct {
         const width: usize = @intCast(parsed.value.width);
         const height: usize = @intCast(parsed.value.height);
         const data = try allocator.alloc(Tile, width * height);
-        @memset(data, Tile.Empty);
 
         for (parsed.value.tiles, 0..) |tiles, row| {
             for (tiles, 0..) |tile, col| {
-                data[row * width + col] = switch (tile) {
-                    0 => Tile.Empty,
-                    1 => Tile.Wall,
-                    2 => Tile.AnotherWall,
-                    else => Tile.Empty,
+                const kind = switch (tile.kind) {
+                    0 => Tile.Kind.Empty,
+                    1 => Tile.Kind.Wall,
+                    else => Tile.Kind.Empty,
                 };
+
+                data[row * width + col] = Tile.init(kind, if (tile.texture) |texture| @intCast(texture) else null);
             }
+        }
+
+        var textures = std.ArrayList(Texture).init(allocator);
+
+        for (parsed.value.textures) |texture| {
+            try textures.append(try Texture.init(allocator, texture.path));
         }
 
         return .{
@@ -72,7 +122,9 @@ pub const Map = struct {
             .width = width,
             .height = height,
             .data = data,
-            .textures = std.ArrayList(Texture).init(allocator),
+            .ceiling = @intCast(parsed.value.ceiling.texture),
+            .floor = @intCast(parsed.value.floor.texture),
+            .textures = textures,
         };
     }
 
@@ -82,7 +134,7 @@ pub const Map = struct {
 
     pub fn getTile(self: Self, x: i32, y: i32) Tile {
         if (x < 0 or y < 0 or x >= self.width or y >= self.height) {
-            return .Empty;
+            return Tile.initEmpty();
         }
 
         return self.data[@as(usize, @intCast(y)) * self.width + @as(usize, @intCast(x))];

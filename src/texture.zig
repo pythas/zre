@@ -7,11 +7,14 @@ pub const Texture = struct {
     allocator: std.mem.Allocator,
     data: []u8,
 
-    pub fn init(allocator: std.mem.Allocator, path: [:0]const u8) !Self {
+    pub fn init(allocator: std.mem.Allocator, path: []const u8) !Self {
         zstbi.init(allocator);
         defer zstbi.deinit();
 
-        var image = try zstbi.Image.loadFromFile(path, 4);
+        const zpath = try allocator.dupeZ(u8, path);
+        defer allocator.free(zpath);
+
+        var image = try zstbi.Image.loadFromFile(zpath, 4);
         defer image.deinit();
 
         std.debug.assert(image.width == 64 and image.height == 64);

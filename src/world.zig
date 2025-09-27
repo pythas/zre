@@ -83,14 +83,10 @@ pub const World = struct {
     light_dir: Vec2,
 
     pub fn init(allocator: std.mem.Allocator, map_source: MapSource) !Self {
-        var map = switch (map_source) {
+        const map = switch (map_source) {
             .path => |path| try Map.initFromPath(allocator, path),
             .json => |path| try Map.initFromJson(allocator, path),
         };
-
-        try map.textures.append(try Texture.init(allocator, "assets/textures/STEEL_1C.PNG"));
-        try map.textures.append(try Texture.init(allocator, "assets/textures/STEEL_1A.PNG"));
-        try map.textures.append(try Texture.init(allocator, "assets/textures/BRICK_3A.PNG"));
 
         const player = try Player.init(
             Vec2.init(7.5, 7.5),
@@ -146,7 +142,7 @@ pub const World = struct {
         const map_x = @as(i32, @intFromFloat(@trunc(new_pos.x)));
         const map_y = @as(i32, @intFromFloat(@trunc(new_pos.y)));
 
-        if (self.map.getTile(map_x, map_y) == .Empty) {
+        if (self.map.getTile(map_x, map_y).kind == .Empty) {
             self.player.moveForward(dt, 1.0);
         }
     }
@@ -157,7 +153,7 @@ pub const World = struct {
         const map_x = @as(i32, @intFromFloat(@trunc(new_pos.x)));
         const map_y = @as(i32, @intFromFloat(@trunc(new_pos.y)));
 
-        if (self.map.getTile(map_x, map_y) == .Empty) {
+        if (self.map.getTile(map_x, map_y).kind == .Empty) {
             self.player.moveBackward(dt, 1.0);
         }
     }
@@ -168,7 +164,7 @@ pub const World = struct {
         const map_x = @as(i32, @intFromFloat(@trunc(new_pos.x)));
         const map_y = @as(i32, @intFromFloat(@trunc(new_pos.y)));
 
-        if (self.map.getTile(map_x, map_y) == .Empty) {
+        if (self.map.getTile(map_x, map_y).kind == .Empty) {
             self.player.strafeLeft(dt, 1.0, self.camera.plane);
         }
     }
@@ -179,7 +175,7 @@ pub const World = struct {
         const map_x = @as(i32, @intFromFloat(@trunc(new_pos.x)));
         const map_y = @as(i32, @intFromFloat(@trunc(new_pos.y)));
 
-        if (self.map.getTile(map_x, map_y) == .Empty) {
+        if (self.map.getTile(map_x, map_y).kind == .Empty) {
             self.player.strafeRight(dt, 1.0, self.camera.plane);
         }
     }
@@ -241,7 +237,8 @@ pub const World = struct {
                 floor_x += floor_step_x;
                 floor_y += floor_step_y;
 
-                var floor_color = sample(self.map.textures.items[0].data, texture_x, texture_y);
+                const floor_texture_data = self.map.textures.items[self.map.floor].data;
+                var floor_color = sample(floor_texture_data, texture_x, texture_y);
 
                 floor_color[0] /= 2;
                 floor_color[1] /= 2;
@@ -254,7 +251,8 @@ pub const World = struct {
                     .a = @as(f32, @floatFromInt(floor_color[3])) / 255.0,
                 });
 
-                var ceiling_color = sample(self.map.textures.items[1].data, texture_x, texture_y);
+                const ceiling_texture_data = self.map.textures.items[self.map.ceiling].data;
+                var ceiling_color = sample(ceiling_texture_data, texture_x, texture_y);
 
                 ceiling_color[0] /= 1;
                 ceiling_color[1] /= 1;
@@ -306,7 +304,7 @@ pub const World = struct {
                 side_dist.y = (map_position.y + 1.0 - self.player.position.y) * delta_dist.y;
             }
 
-            var tile: Tile = .Empty;
+            var tile = Tile.initEmpty();
 
             while (!hit) {
                 if (side_dist.x < side_dist.y) {
@@ -324,7 +322,7 @@ pub const World = struct {
 
                 tile = self.map.getTile(map_x, map_y);
 
-                if (tile != .Empty) {
+                if (tile.kind != .Empty) {
                     hit = true;
                 }
             }
@@ -370,7 +368,8 @@ pub const World = struct {
                     const texture_y: u32 = @as(u32, @intFromFloat(texture_position)) & (64 - 1);
                     texture_position += step_y;
 
-                    const texture_color = sample(self.map.textures.items[2].data, texture_x, texture_y);
+                    const texture_data = self.map.textures.items[tile.texture.?].data;
+                    const texture_color = sample(texture_data, texture_x, texture_y);
 
                     var n = Vec2.init(0.0, 0.0);
 
