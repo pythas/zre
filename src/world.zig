@@ -74,8 +74,6 @@ fn sample(texture: []u8, x: usize, y: usize) [4]u8 {
     };
 }
 
-// Lighting helpers moved to lighting.zig
-
 pub const World = struct {
     const Self = @This();
 
@@ -198,7 +196,6 @@ pub const World = struct {
         const screen_width_f32: f32 = @floatFromInt(screen_width);
         const half_screen_height = uToI32(screen_height) >> 1;
 
-        // Dynamic render settings
         const rs = self.map.render_settings;
 
         // Plane & wall lighting (colored): ambient + per-light diffuse with attenuation.
@@ -221,7 +218,10 @@ pub const World = struct {
             );
 
             const position_y = @as(i32, @intCast(y)) - half_screen_height;
-            if (position_y == 0) continue; // Should not happen because we start at half + 1
+            if (position_y == 0) {
+                continue;
+            } // Should not happen because we start at half + 1
+
             const position_z: f32 = @floatFromInt(half_screen_height);
 
             const row_distance = position_z / @as(f32, @floatFromInt(position_y));
@@ -233,7 +233,6 @@ pub const World = struct {
             var floor_y = self.player.position.y + row_distance * ray_dir_0.y;
 
             for (0..screen_width) |x_usize| {
-                // Fractional cell coordinates for texture sampling
                 const cell_x = @floor(floor_x);
                 const cell_y = @floor(floor_y);
                 const frac_x = floor_x - cell_x;
@@ -244,13 +243,11 @@ pub const World = struct {
                 texture_x &= 64 - 1;
                 texture_y &= 64 - 1;
 
-                // Advance for next column before we potentially continue
                 floor_x += floor_step_x;
                 floor_y += floor_step_y;
 
-                // WORLD POSITIONS (z planes)
                 const floor_world_z: f32 = 0.0;
-                const ceiling_height: f32 = 1.0; // consistent with wall code assumptions
+                const ceiling_height: f32 = 1.0;
                 const ceiling_world_z: f32 = ceiling_height;
                 const world_x: f32 = @floatCast(cell_x + frac_x);
                 const world_y: f32 = @floatCast(cell_y + frac_y);
@@ -262,11 +259,11 @@ pub const World = struct {
                 const floor_factor_b = std.math.clamp(base_ambient_b + floor_acc.b, 0.0, 1.0);
                 const floor_texture_data = self.map.textures.items[self.map.floor].data;
                 const floor_color = sample(floor_texture_data, texture_x, texture_y);
-                const emissive_floor = lighting.getEmissiveIntensity(@intCast(self.map.floor), rs);
-                const fr = @min(255.0, @as(f32, @floatFromInt(floor_color[0])) * (floor_factor_r + emissive_floor));
-                const fg = @min(255.0, @as(f32, @floatFromInt(floor_color[1])) * (floor_factor_g + emissive_floor));
-                const fb = @min(255.0, @as(f32, @floatFromInt(floor_color[2])) * (floor_factor_b + emissive_floor));
+                const fr = @min(255.0, @as(f32, @floatFromInt(floor_color[0])) * floor_factor_r);
+                const fg = @min(255.0, @as(f32, @floatFromInt(floor_color[1])) * floor_factor_g);
+                const fb = @min(255.0, @as(f32, @floatFromInt(floor_color[2])) * floor_factor_b);
                 const fogged_floor = lighting.applyFog(rs.fog.enabled, rs.fog.color, rs.fog.density, row_distance, fr, fg, fb);
+
                 texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
                     .r = fogged_floor[0] / 255.0,
                     .g = fogged_floor[1] / 255.0,
@@ -290,11 +287,11 @@ pub const World = struct {
                 ceiling_factor_b = std.math.clamp(ceiling_factor_b, 0.0, 1.0);
                 const ceiling_texture_data = self.map.textures.items[self.map.ceiling].data;
                 const ceiling_color = sample(ceiling_texture_data, texture_x, texture_y);
-                const emissive_ceiling = lighting.getEmissiveIntensity(@intCast(self.map.ceiling), rs);
-                const cr = @min(255.0, @as(f32, @floatFromInt(ceiling_color[0])) * (ceiling_factor_r + emissive_ceiling));
-                const cg = @min(255.0, @as(f32, @floatFromInt(ceiling_color[1])) * (ceiling_factor_g + emissive_ceiling));
-                const cb = @min(255.0, @as(f32, @floatFromInt(ceiling_color[2])) * (ceiling_factor_b + emissive_ceiling));
+                const cr = @min(255.0, @as(f32, @floatFromInt(ceiling_color[0])) * ceiling_factor_r);
+                const cg = @min(255.0, @as(f32, @floatFromInt(ceiling_color[1])) * ceiling_factor_g);
+                const cb = @min(255.0, @as(f32, @floatFromInt(ceiling_color[2])) * ceiling_factor_b);
                 const fogged_ceiling = lighting.applyFog(rs.fog.enabled, rs.fog.color, rs.fog.density, row_distance, cr, cg, cb);
+
                 texture_buffer.drawPixel(
                     @intCast(x_usize),
                     @as(i32, @intCast(screen_height)) - @as(i32, @intCast(y)) - 1,
@@ -424,43 +421,6 @@ pub const World = struct {
                 wall_acc.g += base_ambient_g;
                 wall_acc.b += base_ambient_b;
 
-                // Specular highlight (basic Blinn-Phong for point lights only)
-                if (rs.specular.enabled) {
-                    const view_vec = self.player.position.sub(hit_point).normalize();
-                    for (self.map.lightning.lights.items) |light| {
-                        switch (light) {
-                            .point => |pl| {
-                                if (!pl.enabled) continue;
-                                const dx = pl.position.x - hit_point.x;
-                                const dy = pl.position.y - hit_point.y;
-                                const dz = rs.player_height - rs.light_height_bias; // same vertical approximation
-                                const d2: f32 = dx * dx + dy * dy + dz * dz;
-                                const d: f32 = @sqrt(d2) + 1e-4;
-                                var att: f32 = 1.0;
-                                switch (pl.attenuation) {
-                                    .quadratic => |qa| {
-                                        att = 1.0 / (1.0 + qa.linear * d + qa.quadratic * d2);
-                                    },
-                                    .radial => |ra| {
-                                        att = if (d > ra.radius) 0.0 else 1.0;
-                                    },
-                                }
-                                const light_dir = Vec2.init(dx / d, dy / d);
-                                const half_vec_un = Vec2.init(light_dir.x + view_vec.x, light_dir.y + view_vec.y);
-                                const half_len = @max(half_vec_un.len(), 1e-5);
-                                const half_vec = Vec2.init(half_vec_un.x / half_len, half_vec_un.y / half_len);
-                                const spec_angle = @max(0.0, n.x * half_vec.x + n.y * half_vec.y);
-                                if (spec_angle > 0.0) {
-                                    const spec = std.math.pow(f32, spec_angle, rs.specular.power) * rs.specular.strength * pl.intensity * att;
-                                    wall_acc.r += pl.color[0] * spec;
-                                    wall_acc.g += pl.color[1] * spec;
-                                    wall_acc.b += pl.color[2] * spec;
-                                }
-                            },
-                            .directional => |_| {},
-                        }
-                    }
-                }
                 wall_acc.clamp01();
 
                 for (@intCast(draw_start)..@intCast(draw_end)) |y| {
@@ -470,11 +430,11 @@ pub const World = struct {
                     const texture_data = self.map.textures.items[tile.texture.?].data;
                     const texture_color = sample(texture_data, texture_x, texture_y);
 
-                    const emissive_wall = if (tile.texture) |ti| lighting.getEmissiveIntensity(ti, rs) else 0.0;
-                    const lr0 = @min(255.0, @as(f32, @floatFromInt(texture_color[0])) * (wall_acc.r + emissive_wall));
-                    const lg0 = @min(255.0, @as(f32, @floatFromInt(texture_color[1])) * (wall_acc.g + emissive_wall));
-                    const lb0 = @min(255.0, @as(f32, @floatFromInt(texture_color[2])) * (wall_acc.b + emissive_wall));
+                    const lr0 = @min(255.0, @as(f32, @floatFromInt(texture_color[0])) * wall_acc.r);
+                    const lg0 = @min(255.0, @as(f32, @floatFromInt(texture_color[1])) * wall_acc.g);
+                    const lb0 = @min(255.0, @as(f32, @floatFromInt(texture_color[2])) * wall_acc.b);
                     const fogged_wall = lighting.applyFog(rs.fog.enabled, rs.fog.color, rs.fog.density, perp_wall_dist, lr0, lg0, lb0);
+
                     texture_buffer.drawPixel(@intCast(x_usize), @intCast(y), .{
                         .r = fogged_wall[0] / 255.0,
                         .g = fogged_wall[1] / 255.0,

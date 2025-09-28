@@ -2,9 +2,7 @@ const std = @import("std");
 const zstbi = @import("zstbi");
 
 const Texture = @import("texture.zig").Texture;
-// const light = @import("light.zig").Light;
 const Light = @import("light.zig").Light;
-// const Attenuation = @import("light.zig").Attenuation;
 const Vec3 = @import("vec3.zig").Vec3;
 
 pub const Tile = struct {
@@ -40,15 +38,14 @@ const JsonTexture = struct {
     height: i32,
 };
 
-// We model the JSON light polymorphism (map02.json) with an explicit tagged struct
 const JsonLight = struct {
-    type: []const u8, // "point" | "directional"
-    position: ?[3]f32 = null, // only for point
-    direction: ?[3]f32 = null, // only for directional
+    type: []const u8,
+    position: ?[3]f32 = null,
+    direction: ?[3]f32 = null,
     color: [3]f32,
     intensity: f32,
-    attenuation: ?struct { // only for point
-        type: []const u8, // "quadratic" | "radial"
+    attenuation: ?struct {
+        type: []const u8,
         linear: ?f32 = null,
         quadratic: ?f32 = null,
         radius: ?f32 = null,
@@ -75,8 +72,6 @@ const JsonAttenuation = union(enum) {
     quadratic: JsonQuadraticAttenuation,
     radial: JsonRadialAttenuation,
 };
-
-// (Old union-based JSON light structs removed; new JsonLight struct above handles polymorphism)
 
 const JsonCeiling = struct {
     texture: i32,
@@ -109,12 +104,6 @@ const JsonMap = struct {
             enabled: bool = false,
             color: [3]f32 = .{ 0.0, 0.0, 0.0 },
             density: f32 = 0.04,
-        } = null,
-        emissive_textures: ?[]struct { index: i32, intensity: f32 } = null,
-        specular: ?struct {
-            enabled: bool = false,
-            power: f32 = 16.0,
-            strength: f32 = 0.3,
         } = null,
     } = null,
 };
@@ -154,8 +143,6 @@ pub const Map = struct {
         player_height: f32 = 0.9,
         light_height_bias: f32 = 0.5,
         fog: FogSettings = .{},
-        emissives: []Emissive = &[_]Emissive{},
-        specular: SpecularSettings = .{},
     };
 
     pub const FogSettings = struct { enabled: bool = false, color: [3]f32 = .{ 0.0, 0.0, 0.0 }, density: f32 = 0.04 };
@@ -264,7 +251,6 @@ pub const Map = struct {
 
         const lightning = Lightning.init(ambient, lights);
 
-        // Render settings defaults
         var render_settings: RenderSettings = .{};
         if (parsed.value.render) |r| {
             if (r.ambient_plane) |v| render_settings.ambient_plane = v;
@@ -274,16 +260,6 @@ pub const Map = struct {
             if (r.light_height_bias) |v| render_settings.light_height_bias = v;
             if (r.fog) |f| {
                 render_settings.fog = .{ .enabled = f.enabled, .color = f.color, .density = f.density };
-            }
-            if (r.specular) |s| {
-                render_settings.specular = .{ .enabled = s.enabled, .power = s.power, .strength = s.strength };
-            }
-            if (r.emissive_textures) |arr| {
-                var list = try allocator.alloc(Emissive, arr.len);
-                for (arr, 0..) |e, i| {
-                    list[i] = .{ .index = @intCast(e.index), .intensity = e.intensity };
-                }
-                render_settings.emissives = list;
             }
         }
 
@@ -302,7 +278,6 @@ pub const Map = struct {
 
     pub fn deinit(self: Self) void {
         self.allocator.free(self.data);
-        if (self.render_settings.emissives.len > 0) self.allocator.free(self.render_settings.emissives);
     }
 
     pub fn getTile(self: Self, x: i32, y: i32) Tile {

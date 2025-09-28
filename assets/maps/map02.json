@@ -36,6 +36,12 @@
             }
         ]
     },
+    "render": {
+        "fog": {
+            "enabled": true,
+            "color": [1.0, 1.0, 0.2]
+        }
+    },
     "ceiling": {"texture": 0},
     "floor": {"texture": 1},
     "tiles": [
