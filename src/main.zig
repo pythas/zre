@@ -5,6 +5,70 @@ const wgpu = zgpu.wgpu;
 
 const Renderer = @import("renderer.zig").Renderer;
 const GameMode = @import("modes/game_mode.zig").GameMode;
+const EditorMode = @import("modes/editor_mode.zig").EditorMode;
+
+pub const ModeTag = enum {
+    game,
+    editor,
+};
+
+pub const Mode = union(ModeTag) {
+    const Self = @This();
+
+    game: GameMode,
+    editor: EditorMode,
+
+    pub fn initGame(
+        allocator: std.mem.Allocator,
+        gctx: *zgpu.GraphicsContext,
+        config: GameMode.Config,
+    ) !Self {
+        return .{
+            .game = try GameMode.init(allocator, gctx, config),
+        };
+    }
+
+    pub fn initEditor(
+        allocator: std.mem.Allocator,
+        gctx: *zgpu.GraphicsContext,
+        config: EditorMode.Config,
+    ) !Self {
+        return .{
+            .editor = try EditorMode.init(allocator, gctx, config),
+        };
+    }
+
+    pub fn deinit(self: *Self) void {
+        switch (self.*) {
+            .game => |*game| game.deinit(),
+            .editor => |*editor| editor.deinit(),
+        }
+    }
+
+    pub fn update(self: *Self, dt: f32) !void {
+        switch (self.*) {
+            .game => |*game| try game.update(dt),
+            .editor => |*editor| try editor.update(dt),
+        }
+    }
+
+    pub fn render(self: Self, pass: zgpu.wgpu.RenderPassEncoder) void {
+        switch (self) {
+            .game => |game| game.render(pass),
+            .editor => |editor| editor.render(pass),
+        }
+    }
+};
+
+const KeyLatch = struct {
+    prev_f1: bool = false,
+
+    pub fn pressedF1(self: *KeyLatch, window: *zglfw.Window) bool {
+        const now = window.getKey(.F1) == .press;
+        defer self.prev_f1 = now;
+        return (now and !self.prev_f1);
+    }
+};
 
 pub fn main() !void {
     try initWindow();
@@ -20,16 +84,7 @@ pub fn main() !void {
     const renderer = try Renderer.init(gpa, window);
     defer renderer.deinit(gpa);
 
-    var game = try GameMode.init(gpa, renderer.gctx, .{
-        .map_source = .{ .path = "assets/maps/map02.json" },
-        .bind_group_layout = renderer.bind_group_layout,
-        .uniforms_buffer = renderer.uniforms_buffer,
-        .pipeline = renderer.pipeline,
-        .window = window,
-    });
-    defer game.deinit();
-
-    try runGameLoop(window, &game, renderer.gctx);
+    try runGameLoop(gpa, window, renderer);
 }
 
 fn initWindow() !void {
@@ -44,8 +99,23 @@ fn createMainWindow() !*zglfw.Window {
     return window;
 }
 
-fn runGameLoop(window: *zglfw.Window, game: *GameMode, gctx: *zgpu.GraphicsContext) !void {
+fn runGameLoop(
+    allocator: std.mem.Allocator,
+    window: *zglfw.Window,
+    renderer: Renderer,
+) !void {
     var last_time: f64 = zglfw.getTime();
+
+    var mode = try Mode.initGame(allocator, renderer.gctx, .{
+        .map_source = .{ .path = "assets/maps/map02.json" },
+        .bind_group_layout = renderer.bind_group_layout,
+        .uniforms_buffer = renderer.uniforms_buffer,
+        .pipeline = renderer.pipeline,
+        .window = window,
+    });
+    defer mode.deinit();
+
+    var latch = KeyLatch{};
 
     while (!window.shouldClose() and window.getKey(.escape) != .press) {
         zglfw.pollEvents();
@@ -54,13 +124,27 @@ fn runGameLoop(window: *zglfw.Window, game: *GameMode, gctx: *zgpu.GraphicsConte
         const dt: f32 = @floatCast(now - last_time);
         last_time = now;
 
-        try game.update(dt);
+        if (latch.pressedF1(window)) {
+            const new_mode: Mode = switch (mode) {
+                .game => try Mode.initEditor(allocator, renderer.gctx, .{}),
+                .editor => try Mode.initGame(allocator, renderer.gctx, .{
+                    .map_source = .{ .path = "assets/maps/map02.json" },
+                    .bind_group_layout = renderer.bind_group_layout,
+                    .uniforms_buffer = renderer.uniforms_buffer,
+                    .pipeline = renderer.pipeline,
+                    .window = window,
+                }),
+            };
+            mode.deinit();
+            mode = new_mode;
+        }
 
-        try renderFrame(gctx, game);
+        try mode.update(dt);
+        try renderFrame(renderer.gctx, &mode);
     }
 }
 
-fn renderFrame(gctx: *zgpu.GraphicsContext, game: *const GameMode) !void {
+fn renderFrame(gctx: *zgpu.GraphicsContext, mode: *const Mode) !void {
     const swapchain_texv = gctx.swapchain.getCurrentTextureView();
     defer swapchain_texv.release();
 
@@ -72,7 +156,7 @@ fn renderFrame(gctx: *zgpu.GraphicsContext, game: *const GameMode) !void {
             const pass = zgpu.beginRenderPassSimple(encoder, .load, swapchain_texv, null, null, null);
             defer zgpu.endReleasePass(pass);
 
-            game.render(pass);
+            mode.render(pass);
         }
 
         break :commands encoder.finish(null);
