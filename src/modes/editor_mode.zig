@@ -62,17 +62,32 @@ pub const MapUi = struct {
                 .h = @floatFromInt(self.screen.texture_buffer.height),
             });
 
-            if (zgui.isItemHovered(.{}) and zgui.isMouseClicked(.right)) {
+            if (zgui.isItemHovered(.{})) {
                 const img_min = zgui.getItemRectMin();
                 const mp = zgui.getMousePos();
                 const local_x = mp[0] - img_min[0];
                 const local_y = mp[1] - img_min[1];
 
                 const tile_x = @as(i32, @intFromFloat((local_x + @as(f32, @floatFromInt(self.scroll_x))) / self.grid_size));
-                const tile_y = @as(i32, @intFromFloat((local_y + @as(f32, @floatFromInt(self.scroll_y))) / self.grid_size));
+                const tile_y = @as(i32, @intCast(map.height)) - 1 - @as(i32, @intFromFloat((local_y + @as(f32, @floatFromInt(self.scroll_y))) / self.grid_size));
 
-                map.updateTile(tile_x, tile_y, Tile.initEmpty());
-                self.dirty = true;
+                if (zgui.isMouseClicked(.left)) {
+                    var tile = map.getTile(tile_x, tile_y);
+
+                    if (tile.kind == .Empty) {
+                        tile.kind = .Wall;
+                        tile.texture = 3;
+                    }
+
+                    map.updateTile(tile_x, tile_y, tile);
+
+                    self.dirty = true;
+                }
+
+                if (zgui.isMouseClicked(.right)) {
+                    map.updateTile(tile_x, tile_y, Tile.initEmpty());
+                    self.dirty = true;
+                }
             }
         }
 
@@ -128,9 +143,12 @@ pub const MapUi = struct {
                 };
 
                 if (color_optional) |col| {
+                    const screen_x = self.scroll_x + x_i32 * grid_size;
+                    const screen_y = self.scroll_y + (@as(i32, @intCast(map.height)) - 1 - y_i32) * grid_size;
+
                     tb.drawFillRect(
-                        self.scroll_x + x_i32 * grid_size,
-                        self.scroll_y + y_i32 * grid_size,
+                        screen_x,
+                        screen_y,
                         grid_size,
                         grid_size,
                         col,

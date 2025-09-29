@@ -185,7 +185,7 @@ pub const Map = struct {
                     1 => Tile.Kind.Wall,
                     else => Tile.Kind.Empty,
                 };
-                data[row * width + col] = Tile.init(kind, if (tile.texture) |texture| @intCast(texture) else null);
+                data[(height - 1 - row) * width + col] = Tile.init(kind, if (tile.texture) |texture| @intCast(texture) else null);
             }
         }
 
