@@ -53,10 +53,10 @@ pub const Mode = union(ModeTag) {
         }
     }
 
-    pub fn render(self: *Self, pass: zgpu.wgpu.RenderPassEncoder) void {
+    pub fn render(self: *Self, pass: zgpu.wgpu.RenderPassEncoder) !void {
         switch (self.*) {
-            .game => |*game| game.render(pass),
-            .editor => |*editor| editor.render(pass),
+            .game => |*game| try game.render(pass),
+            .editor => |*editor| try editor.render(pass),
         }
     }
 };
@@ -164,7 +164,7 @@ fn renderFrame(gctx: *zgpu.GraphicsContext, mode: *Mode) !void {
             const pass = zgpu.beginRenderPassSimple(encoder, .load, swapchain_texv, null, null, null);
             defer zgpu.endReleasePass(pass);
 
-            mode.render(pass);
+            try mode.render(pass);
         }
 
         break :commands encoder.finish(null);

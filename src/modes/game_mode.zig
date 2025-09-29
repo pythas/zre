@@ -57,7 +57,7 @@ pub const GameMode = struct {
         self.screen.upload();
     }
 
-    pub fn render(self: Self, pass: zgpu.wgpu.RenderPassEncoder) void {
+    pub fn render(self: Self, pass: zgpu.wgpu.RenderPassEncoder) !void {
         const pipeline = self.gctx.lookupResource(self.pipeline).?;
         pass.setPipeline(pipeline);
 
