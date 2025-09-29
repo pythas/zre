@@ -11,7 +11,6 @@ pub const Tile = struct {
     pub const Kind = enum(u8) {
         Empty = 0,
         Wall = 1,
-        AnotherWall = 2,
     };
 
     kind: Kind,
@@ -294,5 +293,13 @@ pub const Map = struct {
         std.debug.assert(tile < self.textures.items.len);
 
         return self.textures[tile];
+    }
+
+    pub fn updateTile(self: *Self, x: i32, y: i32, tile: Tile) void {
+        if (x < 0 or y < 0 or x >= self.width or y >= self.height) {
+            return;
+        }
+
+        self.data[@as(usize, @intCast(y)) * self.width + @as(usize, @intCast(x))] = tile;
     }
 };

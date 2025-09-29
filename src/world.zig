@@ -78,16 +78,11 @@ pub const World = struct {
     const Self = @This();
 
     allocator: std.mem.Allocator,
-    map: Map,
+    map: *Map,
     player: Player,
     camera: Camera,
 
-    pub fn init(allocator: std.mem.Allocator, map_source: MapSource) !Self {
-        const map = switch (map_source) {
-            .path => |path| try Map.initFromPath(allocator, path),
-            .json => |path| try Map.initFromJson(allocator, path),
-        };
-
+    pub fn init(allocator: std.mem.Allocator, map: *Map) !Self {
         const player = try Player.init(
             Vec2.init(7.5, 7.5),
             Vec2.init(-1.0, 0.0),
@@ -106,7 +101,7 @@ pub const World = struct {
     }
 
     pub fn deinit(self: Self) void {
-        self.map.deinit();
+        _ = self;
     }
 
     pub fn update(self: *Self, dt: f32, keyboard_state: *const KeyboardState) void {
@@ -198,7 +193,7 @@ pub const World = struct {
 
         const rs = self.map.render_settings;
 
-        // Plane & wall lighting (colored): ambient + per-light diffuse with attenuation.
+        // Plane & wall lighting: ambient + per-light diffuse with attenuation.
         const ambient_color = self.map.lightning.ambient;
         const base_ambient_r: f32 = ambient_color[0] * rs.ambient_plane;
         const base_ambient_g: f32 = ambient_color[1] * rs.ambient_plane;

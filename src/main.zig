@@ -6,6 +6,7 @@ const wgpu = zgpu.wgpu;
 const Renderer = @import("renderer.zig").Renderer;
 const GameMode = @import("modes/game_mode.zig").GameMode;
 const EditorMode = @import("modes/editor_mode.zig").EditorMode;
+const Map = @import("map.zig").Map;
 
 pub const ModeTag = enum {
     game,
@@ -52,10 +53,10 @@ pub const Mode = union(ModeTag) {
         }
     }
 
-    pub fn render(self: Self, pass: zgpu.wgpu.RenderPassEncoder) void {
-        switch (self) {
-            .game => |game| game.render(pass),
-            .editor => |editor| editor.render(pass),
+    pub fn render(self: *Self, pass: zgpu.wgpu.RenderPassEncoder) void {
+        switch (self.*) {
+            .game => |*game| game.render(pass),
+            .editor => |*editor| editor.render(pass),
         }
     }
 };
@@ -106,8 +107,10 @@ fn runGameLoop(
 ) !void {
     var last_time: f64 = zglfw.getTime();
 
+    var map = try Map.initFromPath(allocator, "assets/maps/map02.json");
+
     var mode = try Mode.initGame(allocator, renderer.gctx, .{
-        .map_source = .{ .path = "assets/maps/map02.json" },
+        .map = &map,
         .bind_group_layout = renderer.bind_group_layout,
         .uniforms_buffer = renderer.uniforms_buffer,
         .pipeline = renderer.pipeline,
@@ -126,9 +129,14 @@ fn runGameLoop(
 
         if (latch.pressedF1(window)) {
             const new_mode: Mode = switch (mode) {
-                .game => try Mode.initEditor(allocator, renderer.gctx, .{}),
+                .game => try Mode.initEditor(allocator, renderer.gctx, .{
+                    .map = &map,
+                    .bind_group_layout = renderer.bind_group_layout,
+                    .uniforms_buffer = renderer.uniforms_buffer,
+                    .window = window,
+                }),
                 .editor => try Mode.initGame(allocator, renderer.gctx, .{
-                    .map_source = .{ .path = "assets/maps/map02.json" },
+                    .map = &map,
                     .bind_group_layout = renderer.bind_group_layout,
                     .uniforms_buffer = renderer.uniforms_buffer,
                     .pipeline = renderer.pipeline,
@@ -144,7 +152,7 @@ fn runGameLoop(
     }
 }
 
-fn renderFrame(gctx: *zgpu.GraphicsContext, mode: *const Mode) !void {
+fn renderFrame(gctx: *zgpu.GraphicsContext, mode: *Mode) !void {
     const swapchain_texv = gctx.swapchain.getCurrentTextureView();
     defer swapchain_texv.release();
 

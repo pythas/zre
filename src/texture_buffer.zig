@@ -190,6 +190,26 @@ pub const TextureBuffer = struct {
         }
     }
 
+    pub fn drawRect(self: *Self, x: i32, y: i32, w: i32, h: i32, color: wgpu.Color) void {
+        self.drawLine(x, y, x + w, y, color);
+        self.drawLine(x + w, y, x + w, y + h, color);
+        self.drawLine(x + w, y + h, x, y + h, color);
+        self.drawLine(x, y + h, x, y, color);
+    }
+
+    pub fn drawFillRect(self: *Self, x: i32, y: i32, w: i32, h: i32, color: wgpu.Color) void {
+        const x_usize: usize = @intCast(x);
+        const y_usize: usize = @intCast(y);
+        const w_usize: usize = @intCast(w);
+        const h_usize: usize = @intCast(h);
+
+        for (x_usize..x_usize + w_usize) |i| {
+            for (y_usize..y_usize + h_usize) |j| {
+                self.drawPixel(@intCast(i), @intCast(j), color);
+            }
+        }
+    }
+
     pub fn clear(self: *Self, color: wgpu.Color) void {
         for (0..self.height) |y| {
             for (0..self.width) |x| {
