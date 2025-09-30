@@ -2,6 +2,8 @@ const std = @import("std");
 const zgpu = @import("zgpu");
 const wgpu = zgpu.wgpu;
 
+const color_mod = @import("color.zig");
+
 pub const DrawError = error{
     OutOfBounds,
     InvalidCoordinates,
@@ -206,6 +208,19 @@ pub const TextureBuffer = struct {
         for (x_usize..x_usize + w_usize) |i| {
             for (y_usize..y_usize + h_usize) |j| {
                 self.drawPixel(@intCast(i), @intCast(j), color);
+            }
+        }
+    }
+
+    pub fn blit16x16(self: *Self, dst_x: i32, dst_y: i32, src: *const [16 * 16]u32) void {
+        for (0..16) |y| {
+            for (0..16) |x| {
+                const px = src[y * 16 + x];
+                self.drawPixel(
+                    dst_x + @as(i32, @intCast(x)),
+                    dst_y + @as(i32, @intCast(y)),
+                    color_mod.u32ToColor_RGBA(px),
+                );
             }
         }
     }

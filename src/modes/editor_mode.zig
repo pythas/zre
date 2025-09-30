@@ -21,12 +21,15 @@ pub const MapUi = struct {
     select_y: i32 = -1,
     hover_x: i32 = -1,
     hover_y: i32 = -1,
+    thumbs: std.ArrayList([16 * 16]u32),
+    map: *Map,
 
     pub fn init(
         allocator: std.mem.Allocator,
         gctx: *zgpu.GraphicsContext,
         bind_group_layout: zgpu.BindGroupLayoutHandle,
         uniforms_buffer: zgpu.BufferHandle,
+        map: *Map,
         width: u32,
         height: u32,
     ) !Self {
@@ -39,17 +42,24 @@ pub const MapUi = struct {
             height,
         );
 
+        var thumbs = std.ArrayList([16 * 16]u32).init(allocator);
+        for (map.textures.items) |texture| {
+            try thumbs.append(makeThumb64to16(texture.data));
+        }
+
         return .{
             .gctx = gctx,
             .screen = screen,
+            .map = map,
+            .thumbs = thumbs,
         };
     }
 
-    pub fn render(self: *Self, map: *Map) !void {
+    pub fn render(self: *Self) !void {
         self.screen.texture_buffer.clear(color.getColor(.Black));
 
         try self.drawGrid();
-        try self.drawMap(map);
+        try self.drawMap();
 
         self.screen.upload();
 
@@ -58,8 +68,6 @@ pub const MapUi = struct {
         if (zgui.begin("Texture", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
             zgui.text("Current: {}", .{self.current_texture});
 
-            // TODO: replace 0..num_textures with your real list
-            // Replace your loop with this:
             for (0..16) |i| {
                 var buf: [32]u8 = undefined;
                 const label = try std.fmt.bufPrintZ(&buf, "Texture {}", .{i});
@@ -70,10 +78,10 @@ pub const MapUi = struct {
 
             if (self.select_x >= 0 and self.select_y >= 0) {
                 if (zgui.button("Apply to selected", .{ .w = 0, .h = 0 })) {
-                    var tile = map.getTile(self.select_x, self.select_y);
+                    var tile = self.map.getTile(self.select_x, self.select_y);
                     if (tile.kind == .Empty) tile.kind = .Wall;
                     tile.texture = self.current_texture;
-                    map.updateTile(self.select_x, self.select_y, tile);
+                    self.map.updateTile(self.select_x, self.select_y, tile);
                 }
             } else {
                 zgui.textDisabled("Select a tile to apply", .{});
@@ -98,10 +106,10 @@ pub const MapUi = struct {
                 const local_y = mp[1] - img_min[1];
 
                 const tile_x = @as(i32, @intFromFloat((local_x + @as(f32, @floatFromInt(self.scroll_x))) / self.grid_size));
-                const tile_y = @as(i32, @intCast(map.height)) - 1 - @as(i32, @intFromFloat((local_y + @as(f32, @floatFromInt(self.scroll_y))) / self.grid_size));
+                const tile_y = @as(i32, @intCast(self.map.height)) - 1 - @as(i32, @intFromFloat((local_y + @as(f32, @floatFromInt(self.scroll_y))) / self.grid_size));
 
-                if (tile_x >= 0 and tile_x < @as(i32, @intCast(map.width)) and
-                    tile_y >= 0 and tile_y < @as(i32, @intCast(map.height)))
+                if (tile_x >= 0 and tile_x < @as(i32, @intCast(self.map.width)) and
+                    tile_y >= 0 and tile_y < @as(i32, @intCast(self.map.height)))
                 {
                     self.hover_x = tile_x;
                     self.hover_y = tile_y;
@@ -111,13 +119,13 @@ pub const MapUi = struct {
                 }
 
                 if (zgui.isMouseClicked(.left)) {
-                    var tile = map.getTile(tile_x, tile_y);
+                    var tile = self.map.getTile(tile_x, tile_y);
 
                     if (zgui.isKeyDown(.left_shift)) {
                         tile.kind = .Wall;
                         tile.texture = self.current_texture;
 
-                        map.updateTile(tile_x, tile_y, tile);
+                        self.map.updateTile(tile_x, tile_y, tile);
                     } else if (zgui.isKeyDown(.left_alt)) {
                         if (tile.kind != .Empty) {
                             self.current_texture = tile.texture.?;
@@ -131,15 +139,15 @@ pub const MapUi = struct {
                 }
 
                 if (zgui.isMouseDown(.left) and zgui.isKeyDown(.left_shift)) {
-                    var tile = map.getTile(tile_x, tile_y);
+                    var tile = self.map.getTile(tile_x, tile_y);
                     tile.kind = .Wall;
                     tile.texture = self.current_texture;
 
-                    map.updateTile(tile_x, tile_y, tile);
+                    self.map.updateTile(tile_x, tile_y, tile);
                 }
 
                 if (zgui.isMouseDown(.right)) {
-                    map.updateTile(tile_x, tile_y, Tile.initEmpty());
+                    self.map.updateTile(tile_x, tile_y, Tile.initEmpty());
                 }
             } else {
                 self.hover_x = -1;
@@ -179,38 +187,34 @@ pub const MapUi = struct {
         }
     }
 
-    fn drawMap(self: *Self, map: *Map) !void {
+    fn drawMap(self: *Self) !void {
         var tb = self.screen.texture_buffer;
         const grid_size: i32 = @intFromFloat(self.grid_size);
 
-        for (0..map.height) |y| {
-            for (0..map.width) |x| {
+        for (0..self.map.height) |y| {
+            for (0..self.map.width) |x| {
                 const x_i32: i32 = @intCast(x);
                 const y_i32: i32 = @intCast(y);
 
-                const tile = map.getTile(x_i32, y_i32);
+                const tile = self.map.getTile(x_i32, y_i32);
 
                 const screen_x = self.scroll_x + x_i32 * grid_size;
-                const screen_y = self.scroll_y + (@as(i32, @intCast(map.height)) - 1 - y_i32) * grid_size;
+                const screen_y = self.scroll_y + (@as(i32, @intCast(self.map.height)) - 1 - y_i32) * grid_size;
 
                 switch (tile.kind) {
                     .Empty => {},
                     .Wall => {
-                        tb.drawFillRect(
-                            screen_x,
-                            screen_y,
-                            grid_size,
-                            grid_size,
-                            color.getColor(.Surface),
-                        );
+                        if (tile.texture) |tex_id| {
+                            self.screen.texture_buffer.blit16x16(screen_x, screen_y, &self.thumbs.items[tex_id]);
+                        }
 
-                        tb.drawRect(
-                            screen_x,
-                            screen_y,
-                            grid_size,
-                            grid_size,
-                            color.getColor(.PrimaryActive),
-                        );
+                        // tb.drawRect(
+                        //     screen_x,
+                        //     screen_y,
+                        //     grid_size,
+                        //     grid_size,
+                        //     color.getColor(.PrimaryActive),
+                        // );
                     },
                 }
             }
@@ -218,7 +222,7 @@ pub const MapUi = struct {
 
         if (self.hover_x >= 0 and self.hover_y >= 0) {
             const screen_x = self.scroll_x + self.hover_x * grid_size;
-            const screen_y = self.scroll_y + (@as(i32, @intCast(map.height)) - 1 - self.hover_y) * grid_size;
+            const screen_y = self.scroll_y + (@as(i32, @intCast(self.map.height)) - 1 - self.hover_y) * grid_size;
 
             tb.drawRect(
                 screen_x,
@@ -231,22 +235,43 @@ pub const MapUi = struct {
 
         if (self.select_x >= 0 and self.select_y >= 0) {
             const sx = self.scroll_x + self.select_x * grid_size;
-            const sy = self.scroll_y + (@as(i32, @intCast(map.height)) - 1 - self.select_y) * grid_size;
+            const sy = self.scroll_y + (@as(i32, @intCast(self.map.height)) - 1 - self.select_y) * grid_size;
 
-            // outer border
             tb.drawRect(sx, sy, grid_size, grid_size, color.getColor(.PrimarySelected));
-            // "2px" look by insetting 1px and drawing again
             tb.drawRect(sx + 1, sy + 1, grid_size - 2, grid_size - 2, color.getColor(.PrimarySelected));
 
-            // subtle inner overlay to differentiate selected from hover
             tb.drawFillRect(
                 sx + 2,
                 sy + 2,
                 grid_size - 4,
                 grid_size - 4,
-                .{ .r = 0.30, .g = 0.65, .b = 1.00, .a = 0.10 }, // translucent accent
+                .{ .r = 0.30, .g = 0.65, .b = 1.00, .a = 0.10 },
             );
         }
+    }
+
+    fn makeThumb64to16(src: []const u8) [16 * 16]u32 {
+        var out: [16 * 16]u32 = undefined;
+        const src_w: usize = 64;
+        const bpp: usize = 4;
+
+        var y: usize = 0;
+        while (y < 16) : (y += 1) {
+            const sy = y * 4;
+            var x: usize = 0;
+            while (x < 16) : (x += 1) {
+                const sx = x * 4;
+
+                const i = (sy * src_w + sx) * bpp;
+                const r: u32 = src[i + 0];
+                const g: u32 = src[i + 1];
+                const b: u32 = src[i + 2];
+                const a: u32 = src[i + 3];
+
+                out[y * 16 + x] = (r << 24) | (g << 16) | (b << 8) | a;
+            }
+        }
+        return out;
     }
 };
 
@@ -258,7 +283,7 @@ pub const EditorMode = struct {
     width: u32,
     height: u32,
     map_ui: MapUi,
-    map: *Map,
+    // map: *Map,
 
     pub const Config = struct {
         map: *Map,
@@ -288,10 +313,11 @@ pub const EditorMode = struct {
                 gctx,
                 config.bind_group_layout,
                 config.uniforms_buffer,
+                config.map,
                 600,
                 400,
             ),
-            .map = config.map,
+            // .map = config.map,
         };
     }
 
@@ -310,7 +336,7 @@ pub const EditorMode = struct {
     pub fn render(self: *Self, pass: zgpu.wgpu.RenderPassEncoder) !void {
         zgui.backend.newFrame(self.width, self.height);
 
-        try self.map_ui.render(self.map);
+        try self.map_ui.render();
 
         zgui.backend.draw(pass);
     }
