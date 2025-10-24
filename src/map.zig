@@ -14,9 +14,9 @@ pub const Tile = struct {
     };
 
     kind: Kind,
-    texture: ?u8,
+    texture: u8,
 
-    pub fn init(kind: Kind, texture: ?u8) Self {
+    pub fn init(kind: Kind, texture: u8) Self {
         return .{
             .kind = kind,
             .texture = texture,
@@ -26,7 +26,7 @@ pub const Tile = struct {
     pub fn initEmpty() Self {
         return .{
             .kind = .Empty,
-            .texture = null,
+            .texture = 0,
         };
     }
 };
@@ -35,6 +35,11 @@ const JsonTexture = struct {
     path: []const u8,
     width: i32,
     height: i32,
+};
+
+const JsonPlayer = struct {
+    position: [2]f32,
+    direction: [2]f32,
 };
 
 const JsonLight = struct {
@@ -82,13 +87,14 @@ const JsonFloor = struct {
 
 const JsonTile = struct {
     kind: i32,
-    texture: ?i32 = null,
+    texture: i32,
 };
 
 const JsonMap = struct {
     width: i32,
     height: i32,
     textures: []JsonTexture,
+    player: JsonPlayer,
     lightning: JsonLightning,
     ceiling: JsonCeiling,
     floor: JsonFloor,
@@ -107,7 +113,7 @@ const JsonMap = struct {
     } = null,
 };
 
-pub const Lightning = struct {
+pub const Lighting = struct {
     const Self = @This();
 
     ambient: [3]f32,
@@ -121,6 +127,12 @@ pub const Lightning = struct {
     }
 };
 
+pub const MapResult = struct {
+    map: Map,
+    player_position: [2]f32,
+    player_direction: [2]f32,
+};
+
 pub const Map = struct {
     const Self = @This();
 
@@ -131,7 +143,7 @@ pub const Map = struct {
     ceiling: usize,
     floor: usize,
     textures: std.ArrayList(Texture),
-    lightning: Lightning,
+    lighting: Lighting,
     render_settings: RenderSettings,
 
     pub const RenderSettings = struct {
@@ -155,7 +167,7 @@ pub const Map = struct {
         };
     }
 
-    pub fn initFromPath(allocator: std.mem.Allocator, path: []const u8) !Self {
+    pub fn initFromPath(allocator: std.mem.Allocator, path: []const u8) !MapResult {
         const file = try std.fs.cwd().openFile(path, .{});
         defer file.close();
 
@@ -170,7 +182,7 @@ pub const Map = struct {
         return Self.initFromJson(allocator, json);
     }
 
-    pub fn initFromJson(allocator: std.mem.Allocator, json: []const u8) !Self {
+    pub fn initFromJson(allocator: std.mem.Allocator, json: []const u8) !MapResult {
         const parsed = try std.json.parseFromSlice(JsonMap, allocator, json, .{});
         defer parsed.deinit();
 
@@ -185,12 +197,11 @@ pub const Map = struct {
                     1 => Tile.Kind.Wall,
                     else => Tile.Kind.Empty,
                 };
-                data[(height - 1 - row) * width + col] = Tile.init(kind, if (tile.texture) |texture| @intCast(texture) else null);
+                data[(height - 1 - row) * width + col] = Tile.init(kind, @intCast(tile.texture));
             }
         }
 
         var textures = std.ArrayList(Texture).init(allocator);
-
         for (parsed.value.textures) |texture| {
             try textures.append(try Texture.init(allocator, texture.path));
         }
@@ -248,7 +259,7 @@ pub const Map = struct {
             }
         }
 
-        const lightning = Lightning.init(ambient, lights);
+        const lightning = Lighting.init(ambient, lights);
 
         var render_settings: RenderSettings = .{};
         if (parsed.value.render) |r| {
@@ -263,15 +274,19 @@ pub const Map = struct {
         }
 
         return .{
-            .allocator = allocator,
-            .width = width,
-            .height = height,
-            .data = data,
-            .ceiling = @intCast(parsed.value.ceiling.texture),
-            .floor = @intCast(parsed.value.floor.texture),
-            .textures = textures,
-            .lightning = lightning,
-            .render_settings = render_settings,
+            .map = .{
+                .allocator = allocator,
+                .width = width,
+                .height = height,
+                .data = data,
+                .ceiling = @intCast(parsed.value.ceiling.texture),
+                .floor = @intCast(parsed.value.floor.texture),
+                .textures = textures,
+                .lighting = lightning,
+                .render_settings = render_settings,
+            },
+            .player_position = parsed.value.player.position,
+            .player_direction = parsed.value.player.direction,
         };
     }
 

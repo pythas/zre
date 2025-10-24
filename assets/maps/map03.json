@@ -1,0 +1,208 @@
+
+{
+  "width": 32,
+  "height": 32,
+  "textures": [
+    { "path": "assets/textures/TILE_2E.PNG", "width": 64, "height": 64 },   // 0 floor
+    { "path": "assets/textures/TILE_1D.PNG", "width": 64, "height": 64 },   // 1 ceiling
+    { "path": "assets/textures/BRICK_6A.PNG", "width": 64, "height": 64 },  // 2 inner ring
+    { "path": "assets/textures/BRICK_6B.PNG", "width": 64, "height": 64 },  // 3 shrine walls
+    { "path": "assets/textures/BRICK_6C.PNG", "width": 64, "height": 64 },  // 4 outer ring
+    { "path": "assets/textures/BRICK_6D.PNG", "width": 64, "height": 64 },  // 5 pillars
+    { "path": "assets/textures/BRICK_6E.PNG", "width": 64, "height": 64 },  // 6 accents
+    { "path": "assets/textures/STEEL_2B.PNG", "width": 64, "height": 64 },  // 7 trims (optional)
+    { "path": "assets/textures/LIGHT_1A.PNG", "width": 64, "height": 64 },  // 8 light panels (optional)
+    { "path": "assets/textures/BIGDOOR_1A.PNG", "width": 64, "height": 64 } // 9 (kept for later)
+  ],
+  "lightning": {
+    "ambient": [0.06, 0.07, 0.10],
+    "lights": [
+      { "type": "point", "position": [15.5, 15.5, 1.0], "color": [1.0, 0.85, 0.55], "intensity": 0.9, "attenuation": { "type": "quadratic", "linear": 0.25, "quadratic": 0.18 }, "casts_shadows": false, "enabled": true },
+      { "type": "point", "position": [14.5, 14.5, 1.0], "color": [1.0, 0.85, 0.55], "intensity": 0.8, "attenuation": { "type": "quadratic", "linear": 0.28, "quadratic": 0.20 }, "casts_shadows": false, "enabled": true },
+      { "type": "point", "position": [14.5, 18.5, 1.0], "color": [1.0, 0.85, 0.55], "intensity": 0.8, "attenuation": { "type": "quadratic", "linear": 0.28, "quadratic": 0.20 }, "casts_shadows": false, "enabled": true },
+      { "type": "point", "position": [18.5, 14.5, 1.0], "color": [1.0, 0.85, 0.55], "intensity": 0.8, "attenuation": { "type": "quadratic", "linear": 0.28, "quadratic": 0.20 }, "casts_shadows": false, "enabled": true },
+      { "type": "point", "position": [18.5, 18.5, 1.0], "color": [1.0, 0.85, 0.55], "intensity": 0.8, "attenuation": { "type": "quadratic", "linear": 0.28, "quadratic": 0.20 }, "casts_shadows": false, "enabled": true },
+      { "type": "directional", "direction": [0.4, 0.2, -1.0], "color": [0.25, 0.35, 1.0], "intensity": 0.35, "casts_shadows": false, "enabled": true }
+    ]
+  },
+  "render": {
+    "fog": { "enabled": true, "density": 0.14, "color": [0.16, 0.18, 0.20] }
+  },
+  "ceiling": { "texture": 1 },
+  "floor": { "texture": 0 },
+  "tiles": [
+    [ {"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4} ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4} ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4} ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4} ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4} ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4} ],
+
+    /* Row 6: inner ring top (opening at x=16) */
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},
+      {"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},
+      {"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},
+      {"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+
+    /* Rows 7–11: vertical inner walls at x=6 and x=25 */
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":1,"texture":6},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":1,"texture":6},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":6},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+
+    /* Row 12: top of central shrine (x=12..19 walls) */
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+
+    /* Rows 13–17: shrine sides with four pillars (texture 5) */
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":3},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":3},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":3},{"kind":0,"texture":0},{"kind":1,"texture":5},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":5},{"kind":0,"texture":0},{"kind":1,"texture":3},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":3},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":3},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":3},{"kind":0,"texture":0},{"kind":1,"texture":5},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":5},{"kind":0,"texture":0},{"kind":1,"texture":3},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":3},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":3},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+
+    /* Row 18: bottom of shrine */
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+
+    /* Rows 19–24: back to ring corridors (opening in verticals at y=16) */
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":6},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":1,"texture":6},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":1,"texture":6},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":1,"texture":3},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":2},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+
+    /* Row 25: inner ring bottom (opening at x=16) */
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},
+      {"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},
+      {"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},
+      {"kind":1,"texture":2},{"kind":1,"texture":2},{"kind":1,"texture":2},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+
+    /* Rows 26–30: approach back to border */
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":1,"texture":6},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":6},{"kind":1,"texture":6},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},
+      {"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":0,"texture":0},{"kind":1,"texture":4}
+    ],
+    [ {"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4},{"kind":1,"texture":4} ]
+  ]
+}

@@ -3,10 +3,10 @@ const zglfw = @import("zglfw");
 const zgpu = @import("zgpu");
 const wgpu = zgpu.wgpu;
 
-const Renderer = @import("renderer.zig").Renderer;
 const GameMode = @import("modes/game_mode.zig").GameMode;
 const EditorMode = @import("modes/editor_mode.zig").EditorMode;
 const Map = @import("map.zig").Map;
+const MapResult = @import("map.zig").MapResult;
 
 pub const ModeTag = enum {
     game,
@@ -22,20 +22,30 @@ pub const Mode = union(ModeTag) {
     pub fn initGame(
         allocator: std.mem.Allocator,
         gctx: *zgpu.GraphicsContext,
-        config: GameMode.Config,
+        window: *zglfw.Window,
+        map_result: *MapResult,
     ) !Self {
         return .{
-            .game = try GameMode.init(allocator, gctx, config),
+            .game = try GameMode.init(
+                allocator,
+                gctx,
+                window,
+                map_result,
+            ),
         };
     }
 
     pub fn initEditor(
         allocator: std.mem.Allocator,
         gctx: *zgpu.GraphicsContext,
-        config: EditorMode.Config,
+        window: *zglfw.Window,
     ) !Self {
         return .{
-            .editor = try EditorMode.init(allocator, gctx, config),
+            .editor = try EditorMode.init(
+                allocator,
+                gctx,
+                window,
+            ),
         };
     }
 
@@ -82,20 +92,36 @@ pub fn main() !void {
     defer _ = gpa_state.deinit();
     const gpa = gpa_state.allocator();
 
-    const renderer = try Renderer.init(gpa, window);
-    defer renderer.deinit(gpa);
+    // var renderer = try Renderer.init(gpa, window);
+    // defer renderer.deinit(gpa);
 
-    try runGameLoop(gpa, window, renderer);
+    const gctx = try zgpu.GraphicsContext.create(
+        gpa,
+        .{
+            .window = window,
+            .fn_getTime = @ptrCast(&zglfw.getTime),
+            .fn_getFramebufferSize = @ptrCast(&zglfw.Window.getFramebufferSize),
+            .fn_getWin32Window = @ptrCast(&zglfw.getWin32Window),
+            .fn_getX11Display = @ptrCast(&zglfw.getX11Display),
+            .fn_getX11Window = @ptrCast(&zglfw.getX11Window),
+            .fn_getWaylandDisplay = @ptrCast(&zglfw.getWaylandDisplay),
+            .fn_getWaylandSurface = @ptrCast(&zglfw.getWaylandWindow),
+            .fn_getCocoaWindow = @ptrCast(&zglfw.getCocoaWindow),
+        },
+        .{},
+    );
+
+    try runGameLoop(gpa, window, gctx);
 }
 
 fn initWindow() !void {
     try zglfw.init();
-    zglfw.windowHintString(.x11_class_name, "zdse");
-    zglfw.windowHintString(.x11_instance_name, "zdse");
+    zglfw.windowHintString(.x11_class_name, "zre");
+    zglfw.windowHintString(.x11_instance_name, "zre");
 }
 
 fn createMainWindow() !*zglfw.Window {
-    const window = try zglfw.Window.create(1200, 700, "zre", null);
+    const window = try zglfw.Window.create(800, 600, "zre", null);
     window.setSizeLimits(400, 400, -1, -1);
     return window;
 }
@@ -103,22 +129,22 @@ fn createMainWindow() !*zglfw.Window {
 fn runGameLoop(
     allocator: std.mem.Allocator,
     window: *zglfw.Window,
-    renderer: Renderer,
+    gctx: *zgpu.GraphicsContext,
 ) !void {
     var last_time: f64 = zglfw.getTime();
 
-    var map = try Map.initFromPath(allocator, "assets/maps/map02.json");
+    var map_result = try Map.initFromPath(allocator, "assets/maps/map02.json");
 
-    var mode = try Mode.initGame(allocator, renderer.gctx, .{
-        .map = &map,
-        .bind_group_layout = renderer.bind_group_layout,
-        .uniforms_buffer = renderer.uniforms_buffer,
-        .pipeline = renderer.pipeline,
-        .window = window,
-    });
+    var mode = try Mode.initGame(
+        allocator,
+        gctx,
+        window,
+        &map_result,
+    );
     defer mode.deinit();
 
     var latch = KeyLatch{};
+    var fps = FpsCounter{};
 
     while (!window.shouldClose() and window.getKey(.escape) != .press) {
         zglfw.pollEvents();
@@ -127,28 +153,35 @@ fn runGameLoop(
         const dt: f32 = @floatCast(now - last_time);
         last_time = now;
 
+        fps.update(dt);
+
+        if (fps.shouldRefreshTitle()) {
+            const fps_avg = @as(f64, @floatFromInt(fps.acc_frames)) / fps.acc_time;
+            std.debug.print("\rFPS: {d:5.1} | frametime: {d:6.2} ms/n", .{ fps_avg, fps.ema_ms });
+            fps.acc_time = 0.0;
+            fps.acc_frames = 0;
+        }
+
         if (latch.pressedF1(window)) {
             const new_mode: Mode = switch (mode) {
-                .game => try Mode.initEditor(allocator, renderer.gctx, .{
-                    .map = &map,
-                    .bind_group_layout = renderer.bind_group_layout,
-                    .uniforms_buffer = renderer.uniforms_buffer,
-                    .window = window,
-                }),
-                .editor => try Mode.initGame(allocator, renderer.gctx, .{
-                    .map = &map,
-                    .bind_group_layout = renderer.bind_group_layout,
-                    .uniforms_buffer = renderer.uniforms_buffer,
-                    .pipeline = renderer.pipeline,
-                    .window = window,
-                }),
+                .game => try Mode.initEditor(
+                    allocator,
+                    gctx,
+                    window,
+                ),
+                .editor => try Mode.initGame(
+                    allocator,
+                    gctx,
+                    window,
+                    &map_result,
+                ),
             };
             mode.deinit();
             mode = new_mode;
         }
 
         try mode.update(dt);
-        try renderFrame(renderer.gctx, &mode);
+        try renderFrame(gctx, &mode);
     }
 }
 
@@ -174,3 +207,21 @@ fn renderFrame(gctx: *zgpu.GraphicsContext, mode: *Mode) !void {
     gctx.submit(&.{commands});
     _ = gctx.present();
 }
+
+const FpsCounter = struct {
+    ema_ms: f64 = 16.0,
+    alpha: f64 = 0.10,
+    acc_time: f64 = 0.0,
+    acc_frames: u32 = 0,
+
+    pub fn update(self: *FpsCounter, dt: f64) void {
+        const ms = dt * 1000.0;
+        self.ema_ms = self.alpha * ms + (1.0 - self.alpha) * self.ema_ms;
+        self.acc_time += dt;
+        self.acc_frames += 1;
+    }
+
+    pub fn shouldRefreshTitle(self: *FpsCounter) bool {
+        return self.acc_time >= 0.5;
+    }
+};

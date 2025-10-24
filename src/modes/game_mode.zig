@@ -5,46 +5,40 @@ const zglfw = @import("zglfw");
 const StreamingTexture = @import("../streaming_texture.zig").StreamingTexture;
 const World = @import("../world.zig").World;
 const Map = @import("../map.zig").Map;
+const MapResult = @import("../map.zig").MapResult;
 const MapSource = @import("../world.zig").MapSource;
 const KeyboardState = @import("../world.zig").KeyboardState;
+const Renderer = @import("../renderer.zig").Renderer;
 
 pub const GameMode = struct {
     const Self = @This();
 
     allocator: std.mem.Allocator,
-    gctx: *zgpu.GraphicsContext,
-    screen: StreamingTexture,
-    world: World,
-    pipeline: zgpu.RenderPipelineHandle,
     window: *zglfw.Window,
+    renderer: Renderer,
 
-    pub const Config = struct {
-        map: *Map,
-        bind_group_layout: zgpu.BindGroupLayoutHandle,
-        uniforms_buffer: zgpu.BufferHandle,
-        pipeline: zgpu.RenderPipelineHandle,
+    world: World,
+
+    pub fn init(
+        allocator: std.mem.Allocator,
+        gctx: *zgpu.GraphicsContext,
         window: *zglfw.Window,
-    };
-
-    pub fn init(allocator: std.mem.Allocator, gctx: *zgpu.GraphicsContext, config: Config) !Self {
-        const width = gctx.swapchain_descriptor.width;
-        const height = gctx.swapchain_descriptor.height;
-        const screen = try StreamingTexture.init(allocator, gctx, config.bind_group_layout, config.uniforms_buffer, width, height);
-        const world = try World.init(allocator, config.map);
+        map_result: *MapResult,
+    ) !Self {
+        const world = try World.init(allocator, map_result);
+        const renderer = try Renderer.init(allocator, gctx, window, &map_result.map);
 
         return .{
             .allocator = allocator,
-            .gctx = gctx,
-            .screen = screen,
             .world = world,
-            .pipeline = config.pipeline,
-            .window = config.window,
+            .window = window,
+            .renderer = renderer,
         };
     }
 
     pub fn deinit(self: *Self) void {
         self.world.deinit();
-        self.screen.deinit();
+        self.renderer.deinit(self.allocator);
     }
 
     pub fn update(self: *Self, dt: f32) !void {
@@ -53,17 +47,20 @@ pub const GameMode = struct {
         };
 
         self.world.update(dt, &keyboard_state);
-        self.world.rasterize(&self.screen.texture_buffer);
-        self.screen.upload();
     }
 
     pub fn render(self: Self, pass: zgpu.wgpu.RenderPassEncoder) !void {
-        const pipeline = self.gctx.lookupResource(self.pipeline).?;
+        const renderer = self.renderer;
+        const gctx = renderer.gctx;
+
+        renderer.writeBuffers(&self.world);
+
+        const pipeline = gctx.lookupResource(renderer.pipeline).?;
         pass.setPipeline(pipeline);
 
-        const bind_group = self.gctx.lookupResource(self.screen.bind_group).?;
+        const bind_group = gctx.lookupResource(self.renderer.bind_group).?;
         pass.setBindGroup(0, bind_group, null);
 
-        pass.draw(6, 1, 0, 0);
+        pass.draw(3, 1, 0, 0);
     }
 };
