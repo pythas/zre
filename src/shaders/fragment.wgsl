@@ -257,7 +257,6 @@ fn raycast(uv_x: f32) -> RaycastResult {
 
     var side: i32 = 0;
     var hit: Tile = Tile(0u, 0u);
-
     for (var i = 0; i < 1024; i++) {
         if side_dist.x < side_dist.y {
             side_dist.x += delta.x;
@@ -268,8 +267,12 @@ fn raycast(uv_x: f32) -> RaycastResult {
             map_pos.y += step.y;
             side = 1;
         }
+
         hit = fetch_tile(i32(map_pos.x), i32(map_pos.y));
-        if hit.kind != 0u { break; }
+
+        if hit.kind != 0u {
+          break;
+        }
     }
 
     var perp = 0.0;

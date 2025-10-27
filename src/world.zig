@@ -1,5 +1,4 @@
 const std = @import("std");
-const zgpu = @import("zgpu");
 const color = @import("color.zig");
 const math = std.math;
 const zglfw = @import("zglfw");
@@ -9,6 +8,8 @@ const Player = @import("player.zig").Player;
 const Map = @import("map.zig").Map;
 const MapResult = @import("map.zig").MapResult;
 const Camera = @import("camera.zig").Camera;
+const Entity = @import("entity.zig").Entity;
+const Tile = @import("map.zig").Tile;
 
 pub const MapSource = union(enum) {
     path: []const u8,
@@ -20,7 +21,10 @@ pub const KeyboardState = struct {
 
     window: *zglfw.Window,
 
-    pub const Key = enum {
+    curr: u16 = 0,
+    prev: u16 = 0,
+
+    pub const Key = enum(u4) {
         w,
         a,
         s,
@@ -33,19 +37,45 @@ pub const KeyboardState = struct {
         right,
     };
 
-    pub fn isKeyPressed(self: Self, key: Key) bool {
-        return switch (key) {
-            .w => self.window.getKey(.w) == .press,
-            .a => self.window.getKey(.a) == .press,
-            .s => self.window.getKey(.s) == .press,
-            .d => self.window.getKey(.d) == .press,
-            .q => self.window.getKey(.q) == .press,
-            .e => self.window.getKey(.e) == .press,
-            .up => self.window.getKey(.up) == .press,
-            .down => self.window.getKey(.down) == .press,
-            .left => self.window.getKey(.left) == .press,
-            .right => self.window.getKey(.right) == .press,
+    pub fn init(window: *zglfw.Window) Self {
+        return .{
+            .window = window,
         };
+    }
+
+    pub fn beginFrame(self: *Self) void {
+        self.prev = self.curr;
+        self.curr = 0;
+
+        if (self.window.getKey(.w) == .press) self.curr |= bit(.w);
+        if (self.window.getKey(.a) == .press) self.curr |= bit(.a);
+        if (self.window.getKey(.s) == .press) self.curr |= bit(.s);
+        if (self.window.getKey(.d) == .press) self.curr |= bit(.d);
+        if (self.window.getKey(.q) == .press) self.curr |= bit(.q);
+        if (self.window.getKey(.e) == .press) self.curr |= bit(.e);
+        if (self.window.getKey(.up) == .press) self.curr |= bit(.up);
+        if (self.window.getKey(.down) == .press) self.curr |= bit(.down);
+        if (self.window.getKey(.left) == .press) self.curr |= bit(.left);
+        if (self.window.getKey(.right) == .press) self.curr |= bit(.right);
+    }
+
+    pub fn isDown(self: *const Self, k: Key) bool {
+        return (self.curr & bit(k)) != 0;
+    }
+    pub fn wasDown(self: *const Self, k: Key) bool {
+        return (self.prev & bit(k)) != 0;
+    }
+
+    pub fn isPressed(self: *const Self, k: Key) bool {
+        return self.isDown(k) and !self.wasDown(k);
+    }
+
+    pub fn isReleased(self: *const Self, k: Key) bool {
+        return !self.isDown(k) and self.wasDown(k);
+    }
+
+    inline fn bit(k: Key) u16 {
+        return @as(u16, 1) << @intFromEnum(k);
     }
 };
 
@@ -53,9 +83,10 @@ pub const World = struct {
     const Self = @This();
 
     allocator: std.mem.Allocator,
-    map: *Map,
+    map: Map,
     player: Player,
     camera: Camera,
+    entities: std.ArrayList(Entity),
 
     pub fn init(allocator: std.mem.Allocator, map_result: *MapResult) !Self {
         const player = try Player.init(
@@ -69,9 +100,10 @@ pub const World = struct {
 
         return .{
             .allocator = allocator,
-            .map = &map_result.map,
+            .map = map_result.map,
             .player = player,
             .camera = camera,
+            .entities = map_result.entities,
         };
     }
 
@@ -80,28 +112,32 @@ pub const World = struct {
     }
 
     pub fn update(self: *Self, dt: f32, keyboard_state: *const KeyboardState) void {
-        if (keyboard_state.isKeyPressed(.w) or keyboard_state.isKeyPressed(.up)) {
+        if (keyboard_state.isDown(.w)) {
             self.movePlayerForward(dt);
         }
 
-        if (keyboard_state.isKeyPressed(.s) or keyboard_state.isKeyPressed(.down)) {
+        if (keyboard_state.isDown(.s)) {
             self.movePlayerBackward(dt);
         }
 
-        if (keyboard_state.isKeyPressed(.a) or keyboard_state.isKeyPressed(.left)) {
+        if (keyboard_state.isDown(.a)) {
             self.rotatePlayerLeft(dt);
         }
 
-        if (keyboard_state.isKeyPressed(.d) or keyboard_state.isKeyPressed(.right)) {
+        if (keyboard_state.isDown(.d)) {
             self.rotatePlayerRight(dt);
         }
 
-        if (keyboard_state.isKeyPressed(.q)) {
-            self.strafePlayerLeft(dt);
-        }
+        // if (keyboard_state.isKeyPressed(.q)) {
+        //     self.strafePlayerLeft(dt);
+        // }
+        //
+        // if (keyboard_state.isKeyPressed(.e)) {
+        //     self.strafePlayerRight(dt);
+        // }
 
-        if (keyboard_state.isKeyPressed(.e)) {
-            self.strafePlayerRight(dt);
+        if (keyboard_state.isPressed(.e)) {
+            self.interactWithDoor();
         }
     }
 
@@ -155,5 +191,46 @@ pub const World = struct {
 
     fn rotatePlayerRight(self: *Self, dt: f32) void {
         self.player.rotate(dt, -1.0, &self.camera.plane);
+    }
+
+    fn interactWithDoor(self: *Self) void {
+        const player_x = @as(i32, @intFromFloat(self.player.position.x));
+        const player_y = @as(i32, @intFromFloat(self.player.position.y));
+
+        for (self.entities.items) |*entity| {
+            switch (entity.*) {
+                .door => |*door| {
+                    const door_x = @as(i32, @intFromFloat(door.position.x));
+                    const door_y = @as(i32, @intFromFloat(door.position.y));
+
+                    if (player_x == door_x and player_y == door_y) {
+                        continue;
+                    }
+
+                    const dx = player_x - door_x;
+                    const dy = player_y - door_y;
+
+                    const manhattan = @abs(dx) + @abs(dy);
+
+                    if (manhattan != 1) {
+                        continue;
+                    }
+
+                    var tile = self.map.getTile(door_x, door_y);
+
+                    if (door.state == .open) {
+                        door.state = .closed;
+                        tile.kind = .Wall;
+                        self.map.updateTile(door_x, door_y, tile);
+                    } else if (door.state == .closed) {
+                        door.state = .open;
+                        tile.kind = .Empty;
+                        self.map.updateTile(door_x, door_y, tile);
+                    }
+
+                    self.map.is_dirty = true;
+                },
+            }
+        }
     }
 };

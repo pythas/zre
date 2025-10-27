@@ -1,70 +1,1182 @@
 {
-    "width": 16,
-    "height": 16,
-    "textures": [
-        {"path": "assets/textures/TILE_2E.PNG", "width": 64, "height": 64},
-        {"path": "assets/textures/TILE_1D.PNG", "width": 64, "height": 64},
-        {"path": "assets/textures/BRICK_6A.PNG", "width": 64, "height": 64},
-        {"path": "assets/textures/BRICK_6B.PNG", "width": 64, "height": 64},
-        {"path": "assets/textures/BRICK_6C.PNG", "width": 64, "height": 64},
-        {"path": "assets/textures/BRICK_6D.PNG", "width": 64, "height": 64},
-        {"path": "assets/textures/BRICK_6E.PNG", "width": 64, "height": 64}
+  "width": 16,
+  "height": 16,
+  "textures": [
+    {
+      "path": "assets/textures/TILE_2E.PNG",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "assets/textures/TILE_1D.PNG",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "assets/textures/BRICK_6A.PNG",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "assets/textures/BRICK_6B.PNG",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "assets/textures/BRICK_6C.PNG",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "assets/textures/BRICK_6D.PNG",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "path": "assets/textures/BRICK_6E.PNG",
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "player": {
+    "position": [
+      7.5,
+      7.5
     ],
-    "player": {
-      "position": [7.5, 7.5],
-      "direction": [-1.0, 0.0]
-    },
-    "lightning": {
-        "ambient": [0.10, 0.10, 0.12],
-        "lights": [
-            {
-                "type": "point",
-                "position": [4.5, 4.5, 1.0],
-                "color": [1.0, 1.0, 0.2],
-                "intensity": 1.0,
-                "attenuation": {
-                    "type": "quadratic",
-                    "linear": 0.35,
-                    "quadratic": 0.20
-                },
-                "casts_shadows": false,
-                "enabled": true
-            },
-            {
-                "type": "directional",
-                "direction": [0.5, 0.5, -1.0],
-                "color": [0.0, 0.0, 1.0],
-                "intensity": 0.9,
-                "casts_shadows": false,
-                "enabled": true
-            }
-        ]
-    },
-    "render": {
-        "fog": {
-            "enabled": true,
-            "density": 0.1,
-            "color": [0.2, 0.2, 0.2]
-        }
-    },
-    "ceiling": {"texture": 1},
-    "floor": {"texture": 1},
-    "tiles": [
-        [{"kind": 1, "texture": 3}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 1, "texture": 5}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 4}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 0, "texture": 0}, {"kind": 1, "texture": 2}],
-        [{"kind": 1, "texture": 3}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}, {"kind": 1, "texture": 2}]
+    "direction": [
+      -1.0,
+      0.0
     ]
+  },
+  "lightning": {
+    "ambient": [
+      0.10,
+      0.10,
+      0.12
+    ],
+    "lights": [
+      {
+        "type": "point",
+        "position": [
+          3.5,
+          5.5,
+          0.0
+        ],
+        "color": [
+          1.0,
+          1.0,
+          0.2
+        ],
+        "intensity": 1.0,
+        "attenuation": {
+          "type": "quadratic",
+          "linear": 0.35,
+          "quadratic": 0.20
+        },
+        "casts_shadows": false,
+        "enabled": true
+      },
+      {
+        "type": "directional",
+        "direction": [
+          0.5,
+          0.5,
+          -1.0
+        ],
+        "color": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "intensity": 0.9,
+        "casts_shadows": false,
+        "enabled": true
+      }
+    ]
+  },
+  "render": {
+    "fog": {
+      "enabled": true,
+      "density": 0.1,
+      "color": [
+        0.2,
+        0.2,
+        0.2
+      ]
+    }
+  },
+  "ceiling": {
+    "texture": 1
+  },
+  "floor": {
+    "texture": 1
+  },
+  "entities": [
+    {
+      "type": "door",
+      "position": [
+        2,
+        5
+      ],
+      "state": "closed"
+    }
+  ],
+  "tiles": [
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 1,
+        "texture": 5
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 1
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 2,
+        "texture": 4
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 4
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 0,
+        "texture": 0
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ],
+    [
+      {
+        "kind": 1,
+        "texture": 3
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      },
+      {
+        "kind": 1,
+        "texture": 2
+      }
+    ]
+  ]
 }

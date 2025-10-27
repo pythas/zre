@@ -16,7 +16,7 @@ pub const GameMode = struct {
     allocator: std.mem.Allocator,
     window: *zglfw.Window,
     renderer: Renderer,
-
+    keyboard_state: KeyboardState,
     world: World,
 
     pub fn init(
@@ -26,13 +26,16 @@ pub const GameMode = struct {
         map_result: *MapResult,
     ) !Self {
         const world = try World.init(allocator, map_result);
-        const renderer = try Renderer.init(allocator, gctx, window, &map_result.map);
+        const renderer = try Renderer.init(allocator, gctx, window, &world.map);
+
+        const keyboard_state = KeyboardState.init(window);
 
         return .{
             .allocator = allocator,
             .world = world,
             .window = window,
             .renderer = renderer,
+            .keyboard_state = keyboard_state,
         };
     }
 
@@ -42,17 +45,15 @@ pub const GameMode = struct {
     }
 
     pub fn update(self: *Self, dt: f32) !void {
-        const keyboard_state = KeyboardState{
-            .window = self.window,
-        };
-
-        self.world.update(dt, &keyboard_state);
+        self.keyboard_state.beginFrame();
+        self.world.update(dt, &self.keyboard_state);
     }
 
-    pub fn render(self: Self, pass: zgpu.wgpu.RenderPassEncoder) !void {
+    pub fn render(self: *Self, pass: zgpu.wgpu.RenderPassEncoder) !void {
         const renderer = self.renderer;
         const gctx = renderer.gctx;
 
+        try renderer.writeTextures(&self.world);
         renderer.writeBuffers(&self.world);
 
         const pipeline = gctx.lookupResource(renderer.pipeline).?;
@@ -62,5 +63,7 @@ pub const GameMode = struct {
         pass.setBindGroup(0, bind_group, null);
 
         pass.draw(3, 1, 0, 0);
+
+        self.world.map.is_dirty = false;
     }
 };

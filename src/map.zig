@@ -4,6 +4,8 @@ const zstbi = @import("zstbi");
 const Texture = @import("texture.zig").Texture;
 const Light = @import("light.zig").Light;
 const Vec3 = @import("vec3.zig").Vec3;
+const Vec2 = @import("vec2.zig").Vec2;
+const Entity = @import("entity.zig").Entity;
 
 pub const Tile = struct {
     const Self = @This();
@@ -26,6 +28,13 @@ pub const Tile = struct {
     pub fn initEmpty() Self {
         return .{
             .kind = .Empty,
+            .texture = 0,
+        };
+    }
+
+    pub fn initWall() Self {
+        return .{
+            .kind = .Wall,
             .texture = 0,
         };
     }
@@ -85,6 +94,12 @@ const JsonFloor = struct {
     texture: i32,
 };
 
+const JsonEntity = struct {
+    type: []const u8,
+    position: [2]u32,
+    state: []const u8,
+};
+
 const JsonTile = struct {
     kind: i32,
     texture: i32,
@@ -98,6 +113,7 @@ const JsonMap = struct {
     lightning: JsonLightning,
     ceiling: JsonCeiling,
     floor: JsonFloor,
+    entities: []JsonEntity,
     tiles: [][]JsonTile,
     render: ?struct {
         ambient_plane: ?f32 = null,
@@ -131,6 +147,7 @@ pub const MapResult = struct {
     map: Map,
     player_position: [2]f32,
     player_direction: [2]f32,
+    entities: std.ArrayList(Entity),
 };
 
 pub const Map = struct {
@@ -145,6 +162,7 @@ pub const Map = struct {
     textures: std.ArrayList(Texture),
     lighting: Lighting,
     render_settings: RenderSettings,
+    is_dirty: bool = false,
 
     pub const RenderSettings = struct {
         const Self = @This();
@@ -273,6 +291,22 @@ pub const Map = struct {
             }
         }
 
+        var entities = std.ArrayList(Entity).init(allocator);
+
+        for (parsed.value.entities) |entity| {
+            if (std.mem.eql(u8, entity.type, "door")) {
+                const maybe_state = Entity.DoorEntity.stateFromString(entity.state);
+                const door_state = maybe_state orelse .closed;
+
+                const de = Entity.DoorEntity.init(
+                    Vec2.init(@floatFromInt(entity.position[0]), @floatFromInt(entity.position[1])),
+                    door_state,
+                );
+
+                try entities.append(.{ .door = de });
+            }
+        }
+
         return .{
             .map = .{
                 .allocator = allocator,
@@ -287,6 +321,7 @@ pub const Map = struct {
             },
             .player_position = parsed.value.player.position,
             .player_direction = parsed.value.player.direction,
+            .entities = entities,
         };
     }
 

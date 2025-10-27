@@ -68,6 +68,7 @@ const GPULightBuffer = extern struct {
 pub const Renderer = struct {
     const Self = @This();
 
+    allocator: std.mem.Allocator,
     gctx: *zgpu.GraphicsContext,
     window: *zglfw.Window,
     bind_group_layout: zgpu.BindGroupLayoutHandle,
@@ -75,12 +76,13 @@ pub const Renderer = struct {
     uniforms_buffer: zgpu.BufferHandle,
     pipeline: zgpu.RenderPipelineHandle,
     bind_group: zgpu.BindGroupHandle,
+    tilemap: zgpu.TextureHandle,
 
     pub fn init(
         allocator: std.mem.Allocator,
         gctx: *zgpu.GraphicsContext,
         window: *zglfw.Window,
-        map: *Map,
+        map: *const Map,
     ) !Self {
         const bind_group_layout = gctx.createBindGroupLayout(&.{
             zgpu.bufferEntry(0, .{ .vertex = true, .fragment = true }, .uniform, false, 0),
@@ -113,24 +115,24 @@ pub const Renderer = struct {
         });
         const tilemap_view = gctx.createTextureView(tilemap, .{});
 
-        const pixels = try allocator.alloc(u8, map_width * map_height);
-        defer allocator.free(pixels);
-
-        for (0..map.height) |y| {
-            for (0..map.width) |x| {
-                const tile = map.getTile(@intCast(x), @intCast(y));
-                const id = @as(u8, @intFromEnum(tile.kind)) << 4 | @as(u8, tile.texture);
-                pixels[(y * map.width) + x] = id;
-            }
-        }
-
-        gctx.queue.writeTexture(
-            .{ .texture = gctx.lookupResource(tilemap).? },
-            .{ .bytes_per_row = map_width, .rows_per_image = map_height },
-            .{ .width = map_width, .height = map_height },
-            u8,
-            pixels,
-        );
+        // const map_data = try allocator.alloc(u8, map_width * map_height);
+        // defer allocator.free(map_data);
+        //
+        // for (0..map.height) |y| {
+        //     for (0..map.width) |x| {
+        //         const tile = map.getTile(@intCast(x), @intCast(y));
+        //         const id = @as(u8, @intFromEnum(tile.kind)) << 4 | @as(u8, tile.texture);
+        //         map_data[(y * map.width) + x] = id;
+        //     }
+        // }
+        //
+        // gctx.queue.writeTexture(
+        //     .{ .texture = gctx.lookupResource(tilemap).? },
+        //     .{ .bytes_per_row = map_width, .rows_per_image = map_height },
+        //     .{ .width = map_width, .height = map_height },
+        //     u8,
+        //     map_data,
+        // );
 
         // atlas
         const atlas = gctx.createTexture(.{
@@ -220,6 +222,7 @@ pub const Renderer = struct {
         );
 
         return .{
+            .allocator = allocator,
             .gctx = gctx,
             .window = window,
             .bind_group_layout = bind_group_layout,
@@ -227,6 +230,7 @@ pub const Renderer = struct {
             .uniforms_buffer = uniforms_buffer,
             .pipeline = pipeline,
             .bind_group = bind_group,
+            .tilemap = tilemap,
         };
     }
 
@@ -259,6 +263,30 @@ pub const Renderer = struct {
             0,
             u8,
             std.mem.asBytes(&uniforms_data),
+        );
+    }
+
+    pub fn writeTextures(self: Self, world: *const World) !void {
+        const map_width: u32 = @intCast(world.map.width);
+        const map_height: u32 = @intCast(world.map.height);
+
+        const map_data = try self.allocator.alloc(u8, map_width * map_height);
+        defer self.allocator.free(map_data);
+
+        for (0..world.map.height) |y| {
+            for (0..world.map.width) |x| {
+                const tile = world.map.getTile(@intCast(x), @intCast(y));
+                const id = @as(u8, @intFromEnum(tile.kind)) << 4 | @as(u8, tile.texture);
+                map_data[(y * world.map.width) + x] = id;
+            }
+        }
+
+        self.gctx.queue.writeTexture(
+            .{ .texture = self.gctx.lookupResource(self.tilemap).? },
+            .{ .bytes_per_row = map_width, .rows_per_image = map_height },
+            .{ .width = map_width, .height = map_height },
+            u8,
+            map_data,
         );
     }
 };
