@@ -39,12 +39,14 @@ pub const Mode = union(ModeTag) {
         allocator: std.mem.Allocator,
         gctx: *zgpu.GraphicsContext,
         window: *zglfw.Window,
+        map_result: *MapResult,
     ) !Self {
         return .{
             .editor = try EditorMode.init(
                 allocator,
                 gctx,
                 window,
+                map_result,
             ),
         };
     }
@@ -126,6 +128,7 @@ fn initWindow() !void {
 }
 
 fn createMainWindow() !*zglfw.Window {
+    zglfw.windowHint(.client_api, .no_api);
     const window = try zglfw.Window.create(800, 600, "zre", null);
     window.setSizeLimits(400, 400, -1, -1);
     return window;
@@ -177,16 +180,14 @@ fn runGameLoop(
                     allocator,
                     gctx,
                     window,
+                    &map_result,
                 ),
-                .editor => blk: {
-                    map_result = try Map.initFromPath(allocator, "assets/maps/map02.json");
-                    break :blk try Mode.initGame(
-                        allocator,
-                        gctx,
-                        window,
-                        &map_result,
-                    );
-                },
+                .editor => try Mode.initGame(
+                    allocator,
+                    gctx,
+                    window,
+                    &map_result,
+                ),
             };
             mode = new_mode;
         }
@@ -210,7 +211,11 @@ fn renderFrame(
         defer encoder.release();
 
         {
-            const pass = zgpu.beginRenderPassSimple(encoder, .load, swapchain_texv, null, null, null);
+            const clear_op: zgpu.wgpu.LoadOp = switch (mode.*) {
+                .editor => .clear,
+                .game => .load,
+            };
+            const pass = zgpu.beginRenderPassSimple(encoder, clear_op, swapchain_texv, null, null, null);
             defer zgpu.endReleasePass(pass);
 
             try mode.render(pass, dt, t);

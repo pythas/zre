@@ -216,7 +216,9 @@ pub const Renderer = struct {
     }
 
     pub fn deinit(self: Self, allocator: std.mem.Allocator) void {
-        self.gctx.destroy(allocator);
+        _ = self;
+        _ = allocator;
+        // self.gctx.destroy(allocator);
     }
 
     pub fn writeBuffers(self: Self, world: *const World, dt: f32, t: f32) void {
