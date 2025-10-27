@@ -7,6 +7,8 @@ const StreamingTexture = @import("../streaming_texture.zig").StreamingTexture;
 const Map = @import("../map.zig").Map;
 const Tile = @import("../map.zig").Tile;
 const MapResult = @import("../map.zig").MapResult;
+const Light = @import("../light.zig").Light;
+const Vec3 = @import("../vec3.zig").Vec3;
 const color = @import("../color.zig");
 
 pub const MapUi = struct {
@@ -16,6 +18,7 @@ pub const MapUi = struct {
         select,
         paint,
         erase,
+        place_light,
     };
 
     gctx: *zgpu.GraphicsContext,
@@ -33,6 +36,8 @@ pub const MapUi = struct {
     thumb_textures: std.ArrayList(zgpu.TextureHandle),
     thumb_views: std.ArrayList(zgpu.TextureViewHandle),
     map: *Map,
+    map_result: *MapResult,
+    selected_light_index: i32 = -1,
     pan_start_x: f32 = 0,
     pan_start_y: f32 = 0,
     is_panning: bool = false,
@@ -49,6 +54,7 @@ pub const MapUi = struct {
         bind_group_layout: zgpu.BindGroupLayoutHandle,
         uniforms_buffer: zgpu.BufferHandle,
         map: *Map,
+        map_result: *MapResult,
         width: u32,
         height: u32,
     ) !Self {
@@ -96,6 +102,7 @@ pub const MapUi = struct {
             .gctx = gctx,
             .screen = screen,
             .map = map,
+            .map_result = map_result,
             .thumbs = thumbs,
             .thumb_textures = thumb_textures,
             .thumb_views = thumb_views,
@@ -112,15 +119,16 @@ pub const MapUi = struct {
 
         // Mode selector window
         zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20, .cond = .first_use_ever });
-        zgui.setNextWindowSize(.{ .w = 160.0, .h = 120.0, .cond = .first_use_ever });
+        zgui.setNextWindowSize(.{ .w = 160.0, .h = 140.0, .cond = .first_use_ever });
         if (zgui.begin("Mode", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
-            zgui.text("Shortcuts: Z/X/C", .{});
+            zgui.text("Shortcuts: Z/X/C/V", .{});
             zgui.separator();
             
             // Handle mode shortcuts
             if (zgui.isKeyPressed(.z, false)) self.current_tool = .select;
             if (zgui.isKeyPressed(.x, false)) self.current_tool = .paint;
             if (zgui.isKeyPressed(.c, false)) self.current_tool = .erase;
+            if (zgui.isKeyPressed(.v, false)) self.current_tool = .place_light;
             
             if (zgui.selectable("Z: Select", .{ .selected = (self.current_tool == .select) })) {
                 self.current_tool = .select;
@@ -131,12 +139,15 @@ pub const MapUi = struct {
             if (zgui.selectable("C: Erase", .{ .selected = (self.current_tool == .erase) })) {
                 self.current_tool = .erase;
             }
+            if (zgui.selectable("V: Light", .{ .selected = (self.current_tool == .place_light) })) {
+                self.current_tool = .place_light;
+            }
         }
         zgui.end();
 
         // Tile Type Window
-        zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20 + 120 + 10, .cond = .first_use_ever });
-        zgui.setNextWindowSize(.{ .w = 160.0, .h = 230.0, .cond = .first_use_ever });
+        zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20 + 140 + 10, .cond = .first_use_ever });
+        zgui.setNextWindowSize(.{ .w = 160.0, .h = 210.0, .cond = .first_use_ever });
         if (zgui.begin("Tile Type", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
             zgui.text("Shortcuts: F1-F3", .{});
             zgui.separator();
@@ -229,8 +240,8 @@ pub const MapUi = struct {
         zgui.end();
 
         // Texture Window - compact with image previews
-        zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20 + 120 + 10 + 230 + 10, .cond = .first_use_ever });
-        zgui.setNextWindowSize(.{ .w = 160.0, .h = 220.0, .cond = .first_use_ever });
+        zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20 + 140 + 10 + 210 + 10, .cond = .first_use_ever });
+        zgui.setNextWindowSize(.{ .w = 160.0, .h = 180.0, .cond = .first_use_ever });
         if (zgui.begin("Texture", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
             zgui.text("Q/W | Current: {}", .{self.current_texture});
             zgui.separator();
@@ -281,6 +292,43 @@ pub const MapUi = struct {
         }
         zgui.end();
 
+        // Lights Window - below editor
+        zgui.setNextWindowPos(.{ .x = 20.0, .y = 20 + 380 + 10, .cond = .first_use_ever });
+        zgui.setNextWindowSize(.{ .w = 600.0, .h = 150.0, .cond = .first_use_ever });
+        if (zgui.begin("Lights", .{ .flags = .{ .no_resize = true, .no_collapse = true, .no_move = true } })) {
+            zgui.text("Point Lights: {} | V to place", .{self.map.lighting.lights.items.len});
+            zgui.separator();
+            
+            // List lights
+            var i: i32 = 0;
+            while (i < self.map.lighting.lights.items.len) : (i += 1) {
+                const light = &self.map.lighting.lights.items[@intCast(i)];
+                
+                switch (light.*) {
+                    .point => |*pl| {
+                        var buf: [64]u8 = undefined;
+                        const label = try std.fmt.bufPrintZ(&buf, "Light {} ({d:.1},{d:.1})", .{i, pl.position.x, pl.position.y});
+                        
+                        if (zgui.selectable(label, .{ .selected = (self.selected_light_index == i) })) {
+                            self.selected_light_index = i;
+                        }
+                        
+                        if (self.selected_light_index == i) {
+                            zgui.sameLine(.{});
+                            var del_buf: [16]u8 = undefined;
+                            const del_label = try std.fmt.bufPrintZ(&del_buf, "Del##{}", .{i});
+                            if (zgui.button(del_label, .{ .w = 50, .h = 0 })) {
+                                _ = self.map.lighting.lights.orderedRemove(@intCast(i));
+                                self.selected_light_index = -1;
+                            }
+                        }
+                    },
+                    .directional => {},
+                }
+            }
+        }
+        zgui.end();
+
         zgui.setNextWindowPos(.{ .x = 20.0, .y = 20, .cond = .first_use_ever });
         zgui.setNextWindowSize(.{ .w = 600.0, .h = 380.0, .cond = .first_use_ever });
 
@@ -303,6 +351,7 @@ pub const MapUi = struct {
                 .select => zgui.text("Drag to select multiple tiles | Shift: Add to selection", .{}),
                 .paint => zgui.text("Click/Drag to paint | Alt: Pick tile", .{}),
                 .erase => zgui.text("Click/Drag to erase tiles", .{}),
+                .place_light => zgui.text("Click to place point light", .{}),
             }
             
             zgui.separator();
@@ -399,6 +448,26 @@ pub const MapUi = struct {
                         .erase => {
                             self.map.updateTile(tile_x, tile_y, Tile.initEmpty());
                         },
+                        .place_light => {
+                            // Place a point light at clicked position
+                            const light_pos = Vec3.init(
+                                @as(f32, @floatFromInt(tile_x)) + 0.5,
+                                @as(f32, @floatFromInt(tile_y)) + 0.5,
+                                0.0
+                            );
+                            const new_light = Light {
+                                .point = Light.PointLight.init(
+                                    light_pos,
+                                    .{ 1.0, 1.0, 0.2 },  // Yellow light
+                                    1.0,
+                                    .{ .quadratic = .{ .linear = 0.35, .quadratic = 0.20 } },
+                                    false,
+                                    true
+                                )
+                            };
+                            try self.map.lighting.lights.append(new_light);
+                            self.selected_light_index = @intCast(self.map.lighting.lights.items.len - 1);
+                        },
                     }
                 }
 
@@ -424,6 +493,7 @@ pub const MapUi = struct {
                         .erase => {
                             self.map.updateTile(tile_x, tile_y, Tile.initEmpty());
                         },
+                        .place_light => {},
                     }
                 }
 
@@ -512,6 +582,35 @@ pub const MapUi = struct {
                         );
                     },
                 }
+            }
+        }
+        
+        // Draw lights as yellow circles
+        for (self.map.lighting.lights.items, 0..) |light, idx| {
+            switch (light) {
+                .point => |pl| {
+                    const lx = @as(i32, @intFromFloat(pl.position.x));
+                    const ly = @as(i32, @intFromFloat(pl.position.y));
+                    
+                    const screen_x = self.scroll_x + lx * grid_size;
+                    const screen_y = self.scroll_y + (@as(i32, @intCast(self.map.height)) - ly) * grid_size;
+                    
+                    const is_selected = self.selected_light_index == idx;
+                    const light_color: zgpu.wgpu.Color = if (is_selected)
+                        .{ .r = 1.0, .g = 1.0, .b = 0.0, .a = 1.0 }
+                    else
+                        .{ .r = 1.0, .g = 0.8, .b = 0.0, .a = 0.8 };
+                    
+                    // Draw light marker (8x8 filled rect)
+                    tb.drawFillRect(
+                        screen_x + 4,
+                        screen_y + 4,
+                        8,
+                        8,
+                        light_color
+                    );
+                },
+                .directional => {},
             }
         }
 
@@ -682,6 +781,7 @@ pub const EditorMode = struct {
                 bind_group_layout,
                 uniforms_buffer,
                 &map_result.map,
+                map_result,
                 600,
                 400,
             ),
