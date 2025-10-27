@@ -70,11 +70,11 @@ pub const MapUi = struct {
         var thumbs = std.ArrayList([16 * 16]u32).init(allocator);
         var thumb_textures = std.ArrayList(zgpu.TextureHandle).init(allocator);
         var thumb_views = std.ArrayList(zgpu.TextureViewHandle).init(allocator);
-        
+
         for (map.textures.items) |texture| {
             const thumb_data = makeThumb64to16(texture.data);
             try thumbs.append(thumb_data);
-            
+
             // Create GPU texture for this thumbnail
             const thumb_texture = gctx.createTexture(.{
                 .usage = .{ .texture_binding = true, .copy_dst = true },
@@ -82,9 +82,9 @@ pub const MapUi = struct {
                 .format = .rgba8_unorm,
                 .mip_level_count = 1,
             });
-            
+
             const thumb_view = gctx.createTextureView(thumb_texture, .{});
-            
+
             // Upload thumbnail data
             gctx.queue.writeTexture(
                 .{ .texture = gctx.lookupResource(thumb_texture).? },
@@ -93,7 +93,7 @@ pub const MapUi = struct {
                 u32,
                 thumb_data[0..],
             );
-            
+
             try thumb_textures.append(thumb_texture);
             try thumb_views.append(thumb_view);
         }
@@ -123,13 +123,13 @@ pub const MapUi = struct {
         if (zgui.begin("Mode", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
             zgui.text("Shortcuts: Z/X/C/V", .{});
             zgui.separator();
-            
+
             // Handle mode shortcuts
             if (zgui.isKeyPressed(.z, false)) self.current_tool = .select;
             if (zgui.isKeyPressed(.x, false)) self.current_tool = .paint;
             if (zgui.isKeyPressed(.c, false)) self.current_tool = .erase;
             if (zgui.isKeyPressed(.v, false)) self.current_tool = .place_light;
-            
+
             if (zgui.selectable("Z: Select", .{ .selected = (self.current_tool == .select) })) {
                 self.current_tool = .select;
             }
@@ -151,12 +151,12 @@ pub const MapUi = struct {
         if (zgui.begin("Tile Type", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
             zgui.text("Shortcuts: F1-F3", .{});
             zgui.separator();
-            
+
             // Handle keyboard shortcuts
             if (zgui.isKeyPressed(.f1, false)) self.current_tile_kind = .Empty;
             if (zgui.isKeyPressed(.f2, false)) self.current_tile_kind = .Wall;
             if (zgui.isKeyPressed(.f3, false)) self.current_tile_kind = .Lava;
-            
+
             if (zgui.selectable("F1: Empty", .{ .selected = (self.current_tile_kind == .Empty) })) {
                 self.current_tile_kind = .Empty;
             }
@@ -177,10 +177,10 @@ pub const MapUi = struct {
                 const min_y = @min(self.selection_start_y, self.selection_end_y);
                 const max_y = @max(self.selection_start_y, self.selection_end_y);
                 const count = (max_x - min_x + 1) * (max_y - min_y + 1);
-                
+
                 zgui.text("Selected: {} tiles", .{count});
                 zgui.separator();
-                
+
                 if (zgui.button("Apply Type", .{ .w = -1, .h = 0 })) {
                     var y: i32 = min_y;
                     while (y <= max_y) : (y += 1) {
@@ -194,7 +194,7 @@ pub const MapUi = struct {
                         }
                     }
                 }
-                
+
                 if (zgui.button("Apply Texture", .{ .w = -1, .h = 0 })) {
                     var y: i32 = min_y;
                     while (y <= max_y) : (y += 1) {
@@ -209,7 +209,7 @@ pub const MapUi = struct {
                         }
                     }
                 }
-                
+
                 if (zgui.button("Clear Selection", .{ .w = -1, .h = 0 })) {
                     self.selection_start_x = -1;
                     self.selection_start_y = -1;
@@ -218,13 +218,13 @@ pub const MapUi = struct {
                 }
             } else if (self.select_x >= 0 and self.select_y >= 0) {
                 const tile = self.map.getTile(self.select_x, self.select_y);
-                zgui.text("Selected: ({}, {})", .{self.select_x, self.select_y});
+                zgui.text("Selected: ({}, {})", .{ self.select_x, self.select_y });
                 zgui.text("Type: {s}", .{@tagName(tile.kind)});
                 if (tile.kind != .Empty) {
                     zgui.text("Texture: {}", .{tile.texture});
                 }
                 zgui.separator();
-                
+
                 if (zgui.button("Apply to selected", .{ .w = -1, .h = 0 })) {
                     var new_tile = tile;
                     new_tile.kind = self.current_tile_kind;
@@ -264,9 +264,9 @@ pub const MapUi = struct {
             while (i < textures_to_show) : (i += 1) {
                 const thumb_view = self.thumb_views.items[i];
                 const texture_id = self.gctx.lookupResource(thumb_view).?;
-                
+
                 const is_selected = (self.current_texture == i);
-                
+
                 // Use darker background for texture preview
                 if (is_selected) {
                     zgui.pushStyleColor4f(.{ .idx = .button, .c = .{ 0.3, 0.6, 1.0, 0.4 } });
@@ -274,16 +274,16 @@ pub const MapUi = struct {
                     zgui.pushStyleColor4f(.{ .idx = .button, .c = .{ 0.15, 0.15, 0.15, 1.0 } });
                 }
                 zgui.pushStyleColor4f(.{ .idx = .button_hovered, .c = .{ 0.25, 0.25, 0.25, 1.0 } });
-                
+
                 var buf: [8]u8 = undefined;
                 const label = try std.fmt.bufPrintZ(&buf, "##{}", .{i});
-                
+
                 if (zgui.imageButton(label, texture_id, .{ .w = 32, .h = 32 })) {
                     self.current_texture = @intCast(i);
                 }
-                
+
                 zgui.popStyleColor(.{ .count = 2 });
-                
+
                 // 4 per row
                 if (@mod(i + 1, 4) != 0) {
                     zgui.sameLine(.{});
@@ -298,33 +298,50 @@ pub const MapUi = struct {
         if (zgui.begin("Lights", .{ .flags = .{ .no_resize = true, .no_collapse = true, .no_move = true } })) {
             zgui.text("Point Lights: {} | V to place", .{self.map.lighting.lights.items.len});
             zgui.separator();
-            
-            // List lights
-            var i: i32 = 0;
-            while (i < self.map.lighting.lights.items.len) : (i += 1) {
-                const light = &self.map.lighting.lights.items[@intCast(i)];
-                
-                switch (light.*) {
-                    .point => |*pl| {
-                        var buf: [64]u8 = undefined;
-                        const label = try std.fmt.bufPrintZ(&buf, "Light {} ({d:.1},{d:.1})", .{i, pl.position.x, pl.position.y});
-                        
-                        if (zgui.selectable(label, .{ .selected = (self.selected_light_index == i) })) {
-                            self.selected_light_index = i;
-                        }
-                        
-                        if (self.selected_light_index == i) {
-                            zgui.sameLine(.{});
+
+            // Use a table for better layout
+            if (zgui.beginTable("lights_table", .{ .column = 3 })) {
+                zgui.tableSetupColumn("Light", .{});
+                zgui.tableSetupColumn("Position", .{});
+                zgui.tableSetupColumn("Action", .{});
+                zgui.tableHeadersRow();
+
+                var i: i32 = 0;
+                while (i < self.map.lighting.lights.items.len) : (i += 1) {
+                    const light = &self.map.lighting.lights.items[@intCast(i)];
+
+                    switch (light.*) {
+                        .point => |*pl| {
+                            zgui.tableNextRow(.{});
+
+                            // Column 1: Light name (selectable)
+                            _ = zgui.tableNextColumn();
+                            var buf: [32]u8 = undefined;
+                            const label = try std.fmt.bufPrintZ(&buf, "Light {}", .{i});
+                            if (zgui.selectable(label, .{ .selected = (self.selected_light_index == i) })) {
+                                self.selected_light_index = i;
+                            }
+
+                            // Column 2: Position
+                            _ = zgui.tableNextColumn();
+                            var pos_buf: [32]u8 = undefined;
+                            const pos_str = try std.fmt.bufPrintZ(&pos_buf, "({d:.1}, {d:.1})", .{ pl.position.x, pl.position.y });
+                            zgui.text("{s}", .{pos_str});
+
+                            // Column 3: Delete button
+                            _ = zgui.tableNextColumn();
                             var del_buf: [16]u8 = undefined;
                             const del_label = try std.fmt.bufPrintZ(&del_buf, "Del##{}", .{i});
-                            if (zgui.button(del_label, .{ .w = 50, .h = 0 })) {
+                            if (zgui.button(del_label, .{ .w = -1, .h = 0 })) {
                                 _ = self.map.lighting.lights.orderedRemove(@intCast(i));
                                 self.selected_light_index = -1;
                             }
-                        }
-                    },
-                    .directional => {},
+                        },
+                        .directional => {},
+                    }
                 }
+
+                zgui.endTable();
             }
         }
         zgui.end();
@@ -338,22 +355,20 @@ pub const MapUi = struct {
             zgui.sameLine(.{});
             if (self.hover_x >= 0 and self.hover_y >= 0) {
                 const tile = self.map.getTile(self.hover_x, self.hover_y);
-                zgui.text(" | Pos: ({}, {}) | Type: {s} | Tex: {}", .{
-                    self.hover_x, self.hover_y, @tagName(tile.kind), tile.texture
-                });
+                zgui.text(" | Pos: ({}, {}) | Type: {s} | Tex: {}", .{ self.hover_x, self.hover_y, @tagName(tile.kind), tile.texture });
             } else {
                 zgui.text(" | Hover over map", .{});
             }
-            
+
             zgui.separator();
-            
+
             switch (self.current_tool) {
                 .select => zgui.text("Drag to select multiple tiles | Shift: Add to selection", .{}),
                 .paint => zgui.text("Click/Drag to paint | Alt: Pick tile", .{}),
                 .erase => zgui.text("Click/Drag to erase tiles", .{}),
                 .place_light => zgui.text("Click to place point light", .{}),
             }
-            
+
             zgui.separator();
 
             const texture_id = self.gctx.lookupResource(self.screen.texture_view).?;
@@ -387,7 +402,7 @@ pub const MapUi = struct {
                     self.pan_start_x = mp[0];
                     self.pan_start_y = mp[1];
                 }
-                
+
                 if (self.is_panning) {
                     const dx = mp[0] - self.pan_start_x;
                     const dy = mp[1] - self.pan_start_y;
@@ -450,20 +465,10 @@ pub const MapUi = struct {
                         },
                         .place_light => {
                             // Place a point light at clicked position
-                            const light_pos = Vec3.init(
-                                @as(f32, @floatFromInt(tile_x)) + 0.5,
-                                @as(f32, @floatFromInt(tile_y)) + 0.5,
-                                0.0
-                            );
-                            const new_light = Light {
-                                .point = Light.PointLight.init(
-                                    light_pos,
-                                    .{ 1.0, 1.0, 0.2 },  // Yellow light
-                                    1.0,
-                                    .{ .quadratic = .{ .linear = 0.35, .quadratic = 0.20 } },
-                                    false,
-                                    true
-                                )
+                            const light_pos = Vec3.init(@as(f32, @floatFromInt(tile_x)) + 0.5, @as(f32, @floatFromInt(tile_y)) + 0.5, 0.0);
+                            const new_light = Light{
+                                .point = Light.PointLight.init(light_pos, .{ 1.0, 1.0, 0.2 }, // Yellow light
+                                    1.0, .{ .quadratic = .{ .linear = 0.35, .quadratic = 0.20 } }, false, true),
                             };
                             try self.map.lighting.lights.append(new_light);
                             self.selected_light_index = @intCast(self.map.lighting.lights.items.len - 1);
@@ -505,7 +510,7 @@ pub const MapUi = struct {
                 self.hover_x = -1;
                 self.hover_y = -1;
             }
-            
+
             // Stop panning when mouse released
             if (zgui.isMouseReleased(.middle)) {
                 self.is_panning = false;
@@ -584,31 +589,25 @@ pub const MapUi = struct {
                 }
             }
         }
-        
+
         // Draw lights as yellow circles
         for (self.map.lighting.lights.items, 0..) |light, idx| {
             switch (light) {
                 .point => |pl| {
                     const lx = @as(i32, @intFromFloat(pl.position.x));
                     const ly = @as(i32, @intFromFloat(pl.position.y));
-                    
+
                     const screen_x = self.scroll_x + lx * grid_size;
-                    const screen_y = self.scroll_y + (@as(i32, @intCast(self.map.height)) - ly) * grid_size;
-                    
+                    const screen_y = self.scroll_y + (@as(i32, @intCast(self.map.height)) - 1 - ly) * grid_size;
+
                     const is_selected = self.selected_light_index == idx;
                     const light_color: zgpu.wgpu.Color = if (is_selected)
                         .{ .r = 1.0, .g = 1.0, .b = 0.0, .a = 1.0 }
                     else
                         .{ .r = 1.0, .g = 0.8, .b = 0.0, .a = 0.8 };
-                    
+
                     // Draw light marker (8x8 filled rect)
-                    tb.drawFillRect(
-                        screen_x + 4,
-                        screen_y + 4,
-                        8,
-                        8,
-                        light_color
-                    );
+                    tb.drawFillRect(screen_x + 4, screen_y + 4, 8, 8, light_color);
                 },
                 .directional => {},
             }
@@ -666,12 +665,12 @@ pub const MapUi = struct {
             const max_x = @max(self.selection_start_x, self.selection_end_x);
             const min_y = @min(self.selection_start_y, self.selection_end_y);
             const max_y = @max(self.selection_start_y, self.selection_end_y);
-            
+
             const sel_start_x = self.scroll_x + min_x * grid_size;
             const sel_start_y = self.scroll_y + (@as(i32, @intCast(self.map.height)) - 1 - max_y) * grid_size;
             const sel_width = (max_x - min_x + 1) * grid_size;
             const sel_height = (max_y - min_y + 1) * grid_size;
-            
+
             // Draw selection overlay
             tb.drawFillRect(
                 sel_start_x,
@@ -680,7 +679,7 @@ pub const MapUi = struct {
                 sel_height,
                 .{ .r = 0.3, .g = 0.6, .b = 1.0, .a = 0.15 },
             );
-            
+
             // Draw selection border
             tb.drawRect(sel_start_x, sel_start_y, sel_width, sel_height, .{ .r = 0.3, .g = 0.6, .b = 1.0, .a = 1.0 });
             tb.drawRect(sel_start_x + 1, sel_start_y + 1, sel_width - 2, sel_height - 2, .{ .r = 0.3, .g = 0.6, .b = 1.0, .a = 1.0 });
