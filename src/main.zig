@@ -63,9 +63,14 @@ pub const Mode = union(ModeTag) {
         }
     }
 
-    pub fn render(self: *Self, pass: zgpu.wgpu.RenderPassEncoder) !void {
+    pub fn render(
+        self: *Self,
+        pass: zgpu.wgpu.RenderPassEncoder,
+        dt: f32,
+        t: f32,
+    ) !void {
         switch (self.*) {
-            .game => |*game| try game.render(pass),
+            .game => |*game| try game.render(pass, dt, t),
             .editor => |*editor| try editor.render(pass),
         }
     }
@@ -145,6 +150,7 @@ fn runGameLoop(
 
     var latch = KeyLatch{};
     var fps = FpsCounter{};
+    const st = zglfw.getTime();
 
     while (!window.shouldClose() and window.getKey(.escape) != .press) {
         zglfw.pollEvents();
@@ -152,6 +158,8 @@ fn runGameLoop(
         const now = zglfw.getTime();
         const dt: f32 = @floatCast(now - last_time);
         last_time = now;
+
+        const t: f32 = @floatCast(now - st);
 
         fps.update(dt);
 
@@ -163,29 +171,37 @@ fn runGameLoop(
         }
 
         if (latch.pressedF1(window)) {
+            mode.deinit();
             const new_mode: Mode = switch (mode) {
                 .game => try Mode.initEditor(
                     allocator,
                     gctx,
                     window,
                 ),
-                .editor => try Mode.initGame(
-                    allocator,
-                    gctx,
-                    window,
-                    &map_result,
-                ),
+                .editor => blk: {
+                    map_result = try Map.initFromPath(allocator, "assets/maps/map02.json");
+                    break :blk try Mode.initGame(
+                        allocator,
+                        gctx,
+                        window,
+                        &map_result,
+                    );
+                },
             };
-            mode.deinit();
             mode = new_mode;
         }
 
         try mode.update(dt);
-        try renderFrame(gctx, &mode);
+        try renderFrame(gctx, &mode, dt, t);
     }
 }
 
-fn renderFrame(gctx: *zgpu.GraphicsContext, mode: *Mode) !void {
+fn renderFrame(
+    gctx: *zgpu.GraphicsContext,
+    mode: *Mode,
+    dt: f32,
+    t: f32,
+) !void {
     const swapchain_texv = gctx.swapchain.getCurrentTextureView();
     defer swapchain_texv.release();
 
@@ -197,7 +213,7 @@ fn renderFrame(gctx: *zgpu.GraphicsContext, mode: *Mode) !void {
             const pass = zgpu.beginRenderPassSimple(encoder, .load, swapchain_texv, null, null, null);
             defer zgpu.endReleasePass(pass);
 
-            try mode.render(pass);
+            try mode.render(pass, dt, t);
         }
 
         break :commands encoder.finish(null);

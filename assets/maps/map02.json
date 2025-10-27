@@ -39,7 +39,7 @@
     }
   ],
   "player": {
-    "position": [7.5, 7.5],
+    "position": [9.5, 9.5],
     "direction": [-1.0, 0.0]
   },
   "lightning": {
@@ -435,7 +435,7 @@
     [
       {
         "kind": 1,
-        "texture": 3
+        "texture": 2
       },
       {
         "kind": 0,
@@ -501,7 +501,7 @@
     [
       {
         "kind": 1,
-        "texture": 3
+        "texture": 2
       },
       {
         "kind": 0,
@@ -567,7 +567,7 @@
     [
       {
         "kind": 1,
-        "texture": 3
+        "texture": 2
       },
       {
         "kind": 0,
@@ -633,7 +633,7 @@
     [
       {
         "kind": 1,
-        "texture": 3
+        "texture": 2
       },
       {
         "kind": 0,
@@ -699,7 +699,7 @@
     [
       {
         "kind": 1,
-        "texture": 3
+        "texture": 2
       },
       {
         "kind": 0,
@@ -726,12 +726,12 @@
         "texture": 4
       },
       {
-        "kind": 0,
-        "texture": 0
+        "kind": 2,
+        "texture": 4
       },
       {
-        "kind": 0,
-        "texture": 0
+        "kind": 2,
+        "texture": 4
       },
       {
         "kind": 0,
@@ -773,11 +773,7 @@
       },
       {
         "kind": 1,
-        "texture": 3
-      },
-      {
-        "kind": 0,
-        "texture": 0
+        "texture": 2
       },
       {
         "kind": 0,
@@ -796,8 +792,12 @@
         "texture": 4
       },
       {
-        "kind": 0,
-        "texture": 0
+        "kind": 2,
+        "texture": 4
+      },
+      {
+        "kind": 2,
+        "texture": 4
       },
       {
         "kind": 0,

@@ -18,8 +18,8 @@ pub const Uniforms = extern struct {
     fog_density: [4]f32, // density
     ceiling_tex: u32,
     floor_tex: u32,
-    _pad0: u32,
-    _pad1: u32,
+    dt: f32,
+    t: f32,
 };
 
 const GPULight = extern struct {
@@ -219,7 +219,7 @@ pub const Renderer = struct {
         self.gctx.destroy(allocator);
     }
 
-    pub fn writeBuffers(self: Self, world: *const World) void {
+    pub fn writeBuffers(self: Self, world: *const World, dt: f32, t: f32) void {
         const wh = self.window.getFramebufferSize();
         const fog = world.map.render_settings.fog;
 
@@ -235,8 +235,8 @@ pub const Renderer = struct {
             .fog_density = .{ fog.density, 0, 0, 0 },
             .ceiling_tex = @intCast(world.map.ceiling),
             .floor_tex = @intCast(world.map.floor),
-            ._pad0 = 0,
-            ._pad1 = 0,
+            .dt = dt,
+            .t = t,
         };
 
         self.gctx.queue.writeBuffer(

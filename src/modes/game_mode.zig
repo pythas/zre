@@ -49,12 +49,17 @@ pub const GameMode = struct {
         self.world.update(dt, &self.keyboard_state);
     }
 
-    pub fn render(self: *Self, pass: zgpu.wgpu.RenderPassEncoder) !void {
+    pub fn render(
+        self: *Self,
+        pass: zgpu.wgpu.RenderPassEncoder,
+        dt: f32,
+        t: f32,
+    ) !void {
         const renderer = self.renderer;
         const gctx = renderer.gctx;
 
         try renderer.writeTextures(&self.world);
-        renderer.writeBuffers(&self.world);
+        renderer.writeBuffers(&self.world, dt, t);
 
         const pipeline = gctx.lookupResource(renderer.pipeline).?;
         pass.setPipeline(pipeline);

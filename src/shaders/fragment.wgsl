@@ -38,8 +38,8 @@ struct Uniforms {
     fog_density: vec4<f32>,
     ceiling_tex: u32,
     floor_tex: u32,
-    _pad0: u32,
-    _pad1: u32,
+    dt: f32,
+    t: f32,
 };
 
 struct Tile {
@@ -154,17 +154,34 @@ fn pick_plane_layer(default_layer: i32, world_xy: vec2<f32>, is_ceiling: bool) -
     return default_layer;
 }
 
+fn lava_scroll(uv: vec2<f32>) -> vec2<f32> {
+    let scroll_u = U.t * 0.02;
+    let scroll_v = U.t * 0.08;
+
+    let phase_u = uv.x * 6.28318 + U.t * 0.8;
+    let phase_v = uv.y * 6.28318 - U.t * 0.6;
+
+    let wobble_u = sin(phase_u) * 0.07;
+    let wobble_v = sin(phase_v) * 0.07;
+
+    let nu = fract(uv.x + scroll_u + wobble_u);
+    let nv = fract(uv.y + scroll_v + wobble_v);
+
+    return vec2(nu, nv);
+}
+
 fn accumulate_tile_glow(
     p: vec2<f32>,
     tx: i32,
     ty: i32,
     tile_kind: u32,
     base_color: vec3<f32>,
+    intensity: f32,
     use_texture: bool,
 ) -> vec4<f32> {
     var total_glow = vec4<f32>(0.0);
     var total_weight = 0.0;
-    
+
     for (var dx = -2; dx <= 2; dx++) {
         for (var dy = -2; dy <= 2; dy++) {
             let neighbor = fetch_tile(tx + dx, ty + dy);
@@ -172,20 +189,22 @@ fn accumulate_tile_glow(
                 let tile_center = vec2<f32>(f32(tx + dx) + 0.5, f32(ty + dy) + 0.5);
                 let dist_from_center = length(p - tile_center);
                 let falloff = 1.0 / (1.0 + dist_from_center * dist_from_center);
-                
+
                 if use_texture {
-                    let nu = (floor(fract(p.x) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
-                    let nv = (floor(fract(p.y) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
-                    let tile_sample = textureSampleLevel(u_atlas, u_sampler, vec2<f32>(nu, nv), i32(neighbor.texture), 0.0);
-                    total_glow += tile_sample * falloff;
+                    let u = (floor(fract(p.x) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
+                    let v = (floor(fract(p.y) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
+                    var uv = lava_scroll(vec2<f32>(u, v));
+
+                    let tile_sample = textureSampleLevel(u_atlas, u_sampler, uv, i32(neighbor.texture), 0.0);
+                    total_glow += tile_sample * falloff * intensity;
                 } else {
-                    total_glow += vec4<f32>(base_color, 1.0) * falloff;
+                    total_glow += vec4<f32>(base_color, 1.0) * falloff * intensity;
                 }
                 total_weight += falloff;
             }
         }
     }
-    
+
     return vec4<f32>(total_glow.rgb, total_weight);
 }
 
@@ -217,9 +236,13 @@ fn plane_color(x_px: f32, row_i: i32, is_ceiling: bool) -> vec4<f32> {
     let default_layer = select(i32(U.ceiling_tex), i32(U.floor_tex), is_ceiling);
     let layer = pick_plane_layer(default_layer, p, is_ceiling);
 
-    let u = (floor(fract(p.x) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
-    let v = (floor(fract(p.y) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
-    var tex = textureSampleLevel(u_atlas, u_sampler, vec2<f32>(u, v), layer, 0.0);
+    var u = (floor(fract(p.x) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
+    var v = (floor(fract(p.y) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
+    var uv = vec2<f32>(u, v);
+    if is_lava {
+        uv = lava_scroll(uv);
+    }
+    var tex = textureSampleLevel(u_atlas, u_sampler, uv, layer, 0.0);
 
     let ambient_color = vec4<f32>(0.10, 0.10, 0.12, 1.0);
     let base_ambient = ambient_color * AMBIENT_PLANE;
@@ -229,7 +252,18 @@ fn plane_color(x_px: f32, row_i: i32, is_ceiling: bool) -> vec4<f32> {
     if is_lava {
         lit = tex * 1.5;
     } else if is_ceiling || is_ceiling_above_lava {
-        let glow_result = accumulate_tile_glow(p, tx, ty, 2u, vec3<f32>(1.0, 0.3, 0.1), true);
+        let glow_result = accumulate_tile_glow(p, tx, ty, 2u, vec3<f32>(1.0, 0.3, 0.1), 1.0, true);
+
+        if glow_result.a > 0.0 {
+            let lava_glow = vec4<f32>(glow_result.rgb / glow_result.a, 1.0) * 0.8;
+            let glow_strength = clamp(glow_result.a * 0.2, 0.0, 0.4);
+            lit = mix(tex * plane_light, lava_glow, glow_strength);
+        } else {
+            lit = tex * plane_light;
+        }
+    } else if !is_ceiling {
+        let glow_result = accumulate_tile_glow(p, tx, ty, 2u, vec3<f32>(1.0, 0.3, 0.1), 0.3, false);
+
         if glow_result.a > 0.0 {
             let lava_glow = vec4<f32>(glow_result.rgb / glow_result.a, 1.0) * 0.8;
             let glow_strength = clamp(glow_result.a * 0.2, 0.0, 0.4);
@@ -431,7 +465,7 @@ fn main(
     var total_lava_weight = 0.0;
     let wx = i32(floor(hit_point.x));
     let wy = i32(floor(hit_point.y));
-    let glow_result = accumulate_tile_glow(hit_point, wx, wy, 2u, vec3<f32>(1.0, 0.3, 0.1), false);
+    let glow_result = accumulate_tile_glow(hit_point, wx, wy, 2u, vec3<f32>(1.0, 0.3, 0.1), 1.0, false);
 
     var wall_color: vec4<f32>;
     if glow_result.a > 0.0 {
