@@ -294,9 +294,14 @@ pub const MapUi = struct {
 
         // Lights Window - below editor
         zgui.setNextWindowPos(.{ .x = 20.0, .y = 20 + 380 + 10, .cond = .first_use_ever });
-        zgui.setNextWindowSize(.{ .w = 600.0, .h = 150.0, .cond = .first_use_ever });
+        zgui.setNextWindowSize(.{ .w = 400.0, .h = 150.0, .cond = .first_use_ever });
         if (zgui.begin("Lights", .{ .flags = .{ .no_resize = true, .no_collapse = true, .no_move = true } })) {
-            zgui.text("Point Lights: {} | V to place", .{self.map.lighting.lights.items.len});
+            // Count point lights only
+            var point_light_count: usize = 0;
+            for (self.map.lighting.lights.items) |light| {
+                if (light == .point) point_light_count += 1;
+            }
+            zgui.text("Point Lights: {} | V to place", .{point_light_count});
             zgui.separator();
 
             // Use a table for better layout
@@ -342,6 +347,45 @@ pub const MapUi = struct {
                 }
 
                 zgui.endTable();
+            }
+        }
+        zgui.end();
+
+        // Light Properties Window - next to lights list
+        zgui.setNextWindowPos(.{ .x = 20.0 + 400.0 + 10, .y = 20 + 380 + 10, .cond = .first_use_ever });
+        zgui.setNextWindowSize(.{ .w = 190.0, .h = 150.0, .cond = .first_use_ever });
+        if (zgui.begin("Light Properties", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
+            if (self.selected_light_index >= 0 and self.selected_light_index < self.map.lighting.lights.items.len) {
+                const light = &self.map.lighting.lights.items[@intCast(self.selected_light_index)];
+                
+                switch (light.*) {
+                    .point => |*pl| {
+                        zgui.text("Point Light {}", .{self.selected_light_index});
+                        zgui.separator();
+                        
+                        // Color picker
+                        _ = zgui.colorEdit3("Color", .{ .col = &pl.color });
+                        
+                        // Intensity slider
+                        _ = zgui.sliderFloat("Intensity", .{ .v = &pl.intensity, .min = 0.0, .max = 2.0 });
+                        
+                        // Attenuation
+                        if (pl.attenuation == .quadratic) {
+                            _ = zgui.sliderFloat("Linear", .{ .v = &pl.attenuation.quadratic.linear, .min = 0.0, .max = 1.0 });
+                            _ = zgui.sliderFloat("Quadratic", .{ .v = &pl.attenuation.quadratic.quadratic, .min = 0.0, .max = 1.0 });
+                        }
+                        
+                        // Enabled toggle
+                        _ = zgui.checkbox("Enabled", .{ .v = &pl.enabled });
+                    },
+                    .directional => {
+                        zgui.text("Directional lights not supported", .{});
+                    },
+                }
+            } else {
+                zgui.text("No light selected", .{});
+                zgui.separator();
+                zgui.textWrapped("Select a light from the list to edit its properties", .{});
             }
         }
         zgui.end();
