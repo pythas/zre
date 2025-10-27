@@ -91,13 +91,13 @@ fn evaluate_plane_light(
     world_z: f32,
     normal_sign: f32,
 ) -> vec4<f32> {
-    if (light.flags & 0x1u) == 0u {
-        return acc;
-    }
-
     var out_acc = acc;
 
     if (light.kind & 0x1u) == 0u {
+        if (light.flags & 0x1u) == 0u {
+            return acc;
+        }
+
         let d = vec3<f32>(
             light.pos_dir.x - world_xy.x,
             light.pos_dir.y - world_xy.y,
@@ -139,7 +139,57 @@ fn accumulate_plane_lights(world_xy: vec2<f32>, world_z: f32, normal_sign: f32) 
     return acc;
 }
 
-fn plane_color(x_px: f32, row_i: i32, layer: i32) -> vec4<f32> {
+fn pick_plane_layer(default_layer: i32, world_xy: vec2<f32>, is_ceiling: bool) -> i32 {
+    let tx = i32(floor(world_xy.x));
+    let ty = i32(floor(world_xy.y));
+    let tile = fetch_tile(tx, ty);
+
+    if !is_ceiling {
+        if tile.kind == 2u {
+            return i32(tile.texture);
+        }
+    }
+
+
+    return default_layer;
+}
+
+fn accumulate_tile_glow(
+    p: vec2<f32>,
+    tx: i32,
+    ty: i32,
+    tile_kind: u32,
+    base_color: vec3<f32>,
+    use_texture: bool,
+) -> vec4<f32> {
+    var total_glow = vec4<f32>(0.0);
+    var total_weight = 0.0;
+    
+    for (var dx = -2; dx <= 2; dx++) {
+        for (var dy = -2; dy <= 2; dy++) {
+            let neighbor = fetch_tile(tx + dx, ty + dy);
+            if neighbor.kind == tile_kind {
+                let tile_center = vec2<f32>(f32(tx + dx) + 0.5, f32(ty + dy) + 0.5);
+                let dist_from_center = length(p - tile_center);
+                let falloff = 1.0 / (1.0 + dist_from_center * dist_from_center);
+                
+                if use_texture {
+                    let nu = (floor(fract(p.x) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
+                    let nv = (floor(fract(p.y) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
+                    let tile_sample = textureSampleLevel(u_atlas, u_sampler, vec2<f32>(nu, nv), i32(neighbor.texture), 0.0);
+                    total_glow += tile_sample * falloff;
+                } else {
+                    total_glow += vec4<f32>(base_color, 1.0) * falloff;
+                }
+                total_weight += falloff;
+            }
+        }
+    }
+    
+    return vec4<f32>(total_glow.rgb, total_weight);
+}
+
+fn plane_color(x_px: f32, row_i: i32, is_ceiling: bool) -> vec4<f32> {
     let screen_w = U.screen_wh.x;
     let screen_h = U.screen_wh.y;
     let half_h = 0.5 * screen_h;
@@ -155,8 +205,17 @@ fn plane_color(x_px: f32, row_i: i32, layer: i32) -> vec4<f32> {
     let step = (ray1 - ray0) * (row_d / screen_w);
     let p = U.player_pos.xy + ray0 * row_d + step * x_px;
 
-    let world_z = select(0.0, 1.0, layer == 1);
-    let normal_sign = select(1.0, -1.0, layer == 1);
+    let world_z = select(0.0, 1.0, is_ceiling);
+    let normal_sign = select(1.0, -1.0, is_ceiling);
+
+    let tx = i32(floor(p.x));
+    let ty = i32(floor(p.y));
+    let tile = fetch_tile(tx, ty);
+    let is_lava = tile.kind == 2u && !is_ceiling;
+    let is_ceiling_above_lava = tile.kind == 2u && is_ceiling;
+
+    let default_layer = select(i32(U.ceiling_tex), i32(U.floor_tex), is_ceiling);
+    let layer = pick_plane_layer(default_layer, p, is_ceiling);
 
     let u = (floor(fract(p.x) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
     let v = (floor(fract(p.y) * TILE_SIZE_F) + 0.5) / TILE_SIZE_F;
@@ -166,7 +225,21 @@ fn plane_color(x_px: f32, row_i: i32, layer: i32) -> vec4<f32> {
     let base_ambient = ambient_color * AMBIENT_PLANE;
     let plane_light = accumulate_plane_lights(p, world_z, normal_sign) + base_ambient;
 
-    var lit = tex * plane_light;
+    var lit: vec4<f32>;
+    if is_lava {
+        lit = tex * 1.5;
+    } else if is_ceiling || is_ceiling_above_lava {
+        let glow_result = accumulate_tile_glow(p, tx, ty, 2u, vec3<f32>(1.0, 0.3, 0.1), true);
+        if glow_result.a > 0.0 {
+            let lava_glow = vec4<f32>(glow_result.rgb / glow_result.a, 1.0) * 0.8;
+            let glow_strength = clamp(glow_result.a * 0.2, 0.0, 0.4);
+            lit = mix(tex * plane_light, lava_glow, glow_strength);
+        } else {
+            lit = tex * plane_light;
+        }
+    } else {
+        lit = tex * plane_light;
+    }
 
     let fog_on = U.fog_enabled.x > 0.0;
     let fog_factor = clamp(exp(-U.fog_density.x * row_d * 0.5), 0.0, 1.0);
@@ -270,7 +343,8 @@ fn raycast(uv_x: f32) -> RaycastResult {
 
         hit = fetch_tile(i32(map_pos.x), i32(map_pos.y));
 
-        if hit.kind != 0u {
+        // if we later add a another wall type this needs to be changed
+        if hit.kind == 1u { 
           break;
         }
     }
@@ -329,11 +403,11 @@ fn main(
     let row = i32(frag_pos.y);
 
     if row < draw_start {
-        return plane_color(frag_pos.x, row, i32(U.ceiling_tex));
+        return plane_color(frag_pos.x, row, true);
     }
 
     if row > draw_end {
-        return plane_color(frag_pos.x, row, i32(U.floor_tex));
+        return plane_color(frag_pos.x, row, false);
     }
 
     let wd = wall_uv_normal(rc.side, rc.ray_dir, rc.step, perp);
@@ -349,9 +423,24 @@ fn main(
     let hit_point = U.player_pos.xy + rc.ray_dir * rc.perp_dist;
     let wall_light = accumulate_wall_lights(hit_point, wd.n) + base_ambient;
 
-    let wall_color = textureSampleLevel(
+    let wall_tex = textureSampleLevel(
         u_atlas, u_sampler, vec2<f32>(wd.u, v), i32(rc.hit_id.texture), 0.0
-    ) * wall_light;
+    );
+
+    var total_lava_glow = vec3<f32>(0.0);
+    var total_lava_weight = 0.0;
+    let wx = i32(floor(hit_point.x));
+    let wy = i32(floor(hit_point.y));
+    let glow_result = accumulate_tile_glow(hit_point, wx, wy, 2u, vec3<f32>(1.0, 0.3, 0.1), false);
+
+    var wall_color: vec4<f32>;
+    if glow_result.a > 0.0 {
+        let lava_glow = glow_result.rgb / glow_result.a * 0.5;
+        let glow_strength = clamp(glow_result.a * 0.15, 0.0, 0.3);
+        wall_color = vec4<f32>(mix((wall_tex * wall_light).rgb, lava_glow, glow_strength), wall_tex.a);
+    } else {
+        wall_color = wall_tex * wall_light;
+    }
 
     let fog_on = U.fog_enabled.x > 0.0;
     let fog_factor = clamp(exp(-U.fog_density.x * perp * 0.5), 0.0, 1.0);

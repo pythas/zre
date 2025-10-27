@@ -13,6 +13,7 @@ pub const Tile = struct {
     pub const Kind = enum(u8) {
         Empty = 0,
         Wall = 1,
+        Lava = 2,
     };
 
     kind: Kind,
@@ -162,7 +163,7 @@ pub const Map = struct {
     textures: std.ArrayList(Texture),
     lighting: Lighting,
     render_settings: RenderSettings,
-    is_dirty: bool = false,
+    is_dirty: bool = true,
 
     pub const RenderSettings = struct {
         const Self = @This();
@@ -213,6 +214,7 @@ pub const Map = struct {
                 const kind = switch (tile.kind) {
                     0 => Tile.Kind.Empty,
                     1 => Tile.Kind.Wall,
+                    2 => Tile.Kind.Lava,
                     else => Tile.Kind.Empty,
                 };
                 data[(height - 1 - row) * width + col] = Tile.init(kind, @intCast(tile.texture));

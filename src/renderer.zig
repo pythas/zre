@@ -115,25 +115,6 @@ pub const Renderer = struct {
         });
         const tilemap_view = gctx.createTextureView(tilemap, .{});
 
-        // const map_data = try allocator.alloc(u8, map_width * map_height);
-        // defer allocator.free(map_data);
-        //
-        // for (0..map.height) |y| {
-        //     for (0..map.width) |x| {
-        //         const tile = map.getTile(@intCast(x), @intCast(y));
-        //         const id = @as(u8, @intFromEnum(tile.kind)) << 4 | @as(u8, tile.texture);
-        //         map_data[(y * map.width) + x] = id;
-        //     }
-        // }
-        //
-        // gctx.queue.writeTexture(
-        //     .{ .texture = gctx.lookupResource(tilemap).? },
-        //     .{ .bytes_per_row = map_width, .rows_per_image = map_height },
-        //     .{ .width = map_width, .height = map_height },
-        //     u8,
-        //     map_data,
-        // );
-
         // atlas
         const atlas = gctx.createTexture(.{
             .usage = .{ .texture_binding = true, .copy_dst = true },
