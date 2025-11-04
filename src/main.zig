@@ -117,6 +117,7 @@ pub fn main() !void {
         },
         .{},
     );
+    defer gctx.destroy(gpa);
 
     try runGameLoop(gpa, window, gctx);
 }
@@ -142,6 +143,15 @@ fn runGameLoop(
     var last_time: f64 = zglfw.getTime();
 
     var map_result = try Map.initFromPath(allocator, "assets/maps/map02.json");
+    defer {
+        map_result.map.deinit();
+        for (map_result.map.textures.items) |texture| {
+            texture.deinit();
+        }
+        map_result.map.textures.deinit();
+        map_result.map.lighting.lights.deinit();
+        map_result.entities.deinit();
+    }
 
     var mode = try Mode.initGame(
         allocator,
