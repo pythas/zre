@@ -94,9 +94,11 @@ pub const World = struct {
             Vec2.init(map_result.player_direction[0], map_result.player_direction[1]),
         );
 
-        const camera = try Camera.init(
-            Vec2.init(0.0, 0.66),
-        );
+        // Camera plane should be perpendicular to player direction with FOV factor
+        const direction = Vec2.init(map_result.player_direction[0], map_result.player_direction[1]);
+        const plane = direction.perpendicular().mulScalar(0.66);
+
+        const camera = try Camera.init(plane);
 
         return .{
             .allocator = allocator,

@@ -48,4 +48,8 @@ pub const Vec2 = struct {
         self.x = self.x * @cos(amount) - self.y * @sin(amount);
         self.y = old_x * @sin(amount) + self.y * @cos(amount);
     }
+
+    pub fn perpendicular(self: Self) Self {
+        return .{ .x = self.y, .y = -self.x };
+    }
 };

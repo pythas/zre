@@ -19,6 +19,7 @@ pub const MapUi = struct {
         paint,
         erase,
         place_light,
+        place_player,
     };
 
     gctx: *zgpu.GraphicsContext,
@@ -119,9 +120,9 @@ pub const MapUi = struct {
 
         // Mode selector window
         zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20, .cond = .first_use_ever });
-        zgui.setNextWindowSize(.{ .w = 160.0, .h = 140.0, .cond = .first_use_ever });
+        zgui.setNextWindowSize(.{ .w = 160.0, .h = 170.0, .cond = .first_use_ever });
         if (zgui.begin("Mode", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
-            zgui.text("Shortcuts: Z/X/C/V", .{});
+            zgui.text("Shortcuts: Z/X/C/V/B", .{});
             zgui.separator();
 
             // Handle mode shortcuts
@@ -129,6 +130,7 @@ pub const MapUi = struct {
             if (zgui.isKeyPressed(.x, false)) self.current_tool = .paint;
             if (zgui.isKeyPressed(.c, false)) self.current_tool = .erase;
             if (zgui.isKeyPressed(.v, false)) self.current_tool = .place_light;
+            if (zgui.isKeyPressed(.b, false)) self.current_tool = .place_player;
 
             if (zgui.selectable("Z: Select", .{ .selected = (self.current_tool == .select) })) {
                 self.current_tool = .select;
@@ -142,11 +144,14 @@ pub const MapUi = struct {
             if (zgui.selectable("V: Light", .{ .selected = (self.current_tool == .place_light) })) {
                 self.current_tool = .place_light;
             }
+            if (zgui.selectable("B: Player", .{ .selected = (self.current_tool == .place_player) })) {
+                self.current_tool = .place_player;
+            }
         }
         zgui.end();
 
         // Tile Type Window
-        zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20 + 140 + 10, .cond = .first_use_ever });
+        zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20 + 170 + 10, .cond = .first_use_ever });
         zgui.setNextWindowSize(.{ .w = 160.0, .h = 210.0, .cond = .first_use_ever });
         if (zgui.begin("Tile Type", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
             zgui.text("Shortcuts: F1-F3", .{});
@@ -240,7 +245,7 @@ pub const MapUi = struct {
         zgui.end();
 
         // Texture Window - compact with image previews
-        zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20 + 140 + 10 + 210 + 10, .cond = .first_use_ever });
+        zgui.setNextWindowPos(.{ .x = 20.0 + 20.0 + 600.0, .y = 20 + 170 + 10 + 210 + 10, .cond = .first_use_ever });
         zgui.setNextWindowSize(.{ .w = 160.0, .h = 180.0, .cond = .first_use_ever });
         if (zgui.begin("Texture", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
             zgui.text("Q/W | Current: {}", .{self.current_texture});
@@ -390,6 +395,41 @@ pub const MapUi = struct {
         }
         zgui.end();
 
+        // Player Settings Window - below lights
+        zgui.setNextWindowPos(.{ .x = 20.0 + 400.0 + 190.0 + 10, .y = 20 + 380 + 10, .cond = .first_use_ever });
+        zgui.setNextWindowSize(.{ .w = 160.0, .h = 150.0, .cond = .first_use_ever });
+        if (zgui.begin("Player", .{ .flags = .{ .no_resize = true, .no_collapse = true } })) {
+            zgui.text("Press B to place", .{});
+            zgui.separator();
+            
+            zgui.text("Position:", .{});
+            _ = zgui.inputFloat2("##pos", .{ .v = &self.map_result.player_position });
+            
+            zgui.separator();
+            zgui.text("Direction:", .{});
+            _ = zgui.inputFloat2("##dir", .{ .v = &self.map_result.player_direction });
+            
+            if (zgui.button("Normalize Direction", .{ .w = -1, .h = 0 })) {
+                const dx = self.map_result.player_direction[0];
+                const dy = self.map_result.player_direction[1];
+                const len = @sqrt(dx * dx + dy * dy);
+                if (len > 0.001) {
+                    self.map_result.player_direction[0] = dx / len;
+                    self.map_result.player_direction[1] = dy / len;
+                }
+            }
+            
+            // Show camera plane info
+            const dir_x = self.map_result.player_direction[0];
+            const dir_y = self.map_result.player_direction[1];
+            const plane_x = dir_y * 0.66;
+            const plane_y = -dir_x * 0.66;
+            zgui.separator();
+            zgui.textDisabled("Camera plane:", .{});
+            zgui.textDisabled("({d:.2}, {d:.2})", .{ plane_x, plane_y });
+        }
+        zgui.end();
+
         zgui.setNextWindowPos(.{ .x = 20.0, .y = 20, .cond = .first_use_ever });
         zgui.setNextWindowSize(.{ .w = 600.0, .h = 380.0, .cond = .first_use_ever });
 
@@ -411,6 +451,7 @@ pub const MapUi = struct {
                 .paint => zgui.text("Click/Drag to paint | Alt: Pick tile", .{}),
                 .erase => zgui.text("Click/Drag to erase tiles", .{}),
                 .place_light => zgui.text("Click to place point light", .{}),
+                .place_player => zgui.text("Click to place player start position", .{}),
             }
 
             zgui.separator();
@@ -517,6 +558,11 @@ pub const MapUi = struct {
                             try self.map.lighting.lights.append(new_light);
                             self.selected_light_index = @intCast(self.map.lighting.lights.items.len - 1);
                         },
+                        .place_player => {
+                            // Place player at clicked position (center of tile)
+                            self.map_result.player_position[0] = @as(f32, @floatFromInt(tile_x)) + 0.5;
+                            self.map_result.player_position[1] = @as(f32, @floatFromInt(tile_y)) + 0.5;
+                        },
                     }
                 }
 
@@ -543,6 +589,7 @@ pub const MapUi = struct {
                             self.map.updateTile(tile_x, tile_y, Tile.initEmpty());
                         },
                         .place_light => {},
+                        .place_player => {},
                     }
                 }
 
@@ -655,6 +702,30 @@ pub const MapUi = struct {
                 },
                 .directional => {},
             }
+        }
+
+        // Draw player position as a green circle with direction indicator
+        {
+            const px = self.map_result.player_position[0];
+            const py = self.map_result.player_position[1];
+            const dx = self.map_result.player_direction[0];
+            const dy = self.map_result.player_direction[1];
+
+            const screen_x = self.scroll_x + @as(i32, @intFromFloat(px * @as(f32, @floatFromInt(grid_size))));
+            const screen_y = self.scroll_y + @as(i32, @intFromFloat((@as(f32, @floatFromInt(self.map.height)) - py) * @as(f32, @floatFromInt(grid_size))));
+
+            // Draw player body (10x10 filled rect)
+            const player_color: zgpu.wgpu.Color = .{ .r = 0.0, .g = 1.0, .b = 0.0, .a = 1.0 };
+            tb.drawFillRect(screen_x - 5, screen_y - 5, 10, 10, player_color);
+
+            // Draw direction arrow
+            const arrow_length = 8;
+            const end_x = screen_x + @as(i32, @intFromFloat(dx * @as(f32, @floatFromInt(arrow_length))));
+            const end_y = screen_y - @as(i32, @intFromFloat(dy * @as(f32, @floatFromInt(arrow_length))));
+            
+            // Draw line from center to direction
+            const dir_color: zgpu.wgpu.Color = .{ .r = 1.0, .g = 1.0, .b = 1.0, .a = 1.0 };
+            tb.drawLine(screen_x, screen_y, end_x, end_y, dir_color);
         }
 
         if (self.hover_x >= 0 and self.hover_y >= 0) {
