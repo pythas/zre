@@ -55,16 +55,16 @@ pub const GameMode = struct {
         dt: f32,
         t: f32,
     ) !void {
-        const renderer = self.renderer;
-        const gctx = renderer.gctx;
+        const world_renderer = self.renderer.world_renderer;
+        const gctx = world_renderer.gctx;
 
-        try renderer.writeTextures(&self.world);
-        renderer.writeBuffers(&self.world, dt, t);
+        try world_renderer.writeTextures(&self.world);
+        world_renderer.writeBuffers(&self.world, dt, t);
 
-        const pipeline = gctx.lookupResource(renderer.pipeline).?;
+        const pipeline = gctx.lookupResource(world_renderer.pipeline).?;
         pass.setPipeline(pipeline);
 
-        const bind_group = gctx.lookupResource(self.renderer.bind_group).?;
+        const bind_group = gctx.lookupResource(world_renderer.bind_group).?;
         pass.setBindGroup(0, bind_group, null);
 
         pass.draw(3, 1, 0, 0);

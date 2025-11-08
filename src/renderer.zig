@@ -65,7 +65,7 @@ const GPULightBuffer = extern struct {
     lights: [8]GPULight,
 };
 
-pub const Renderer = struct {
+pub const WorldRenderer = struct {
     const Self = @This();
 
     allocator: std.mem.Allocator,
@@ -176,7 +176,7 @@ pub const Renderer = struct {
             .{ .binding = 4, .buffer_handle = light_buffer, .offset = 0, .size = 2048 },
         });
 
-        const pipeline = try createShaderPipeline(
+        const pipeline = try createWorldPipeline(
             gctx,
             pipeline_layout,
         );
@@ -218,14 +218,12 @@ pub const Renderer = struct {
     pub fn deinit(self: Self, allocator: std.mem.Allocator) void {
         _ = self;
         _ = allocator;
-        // self.gctx.destroy(allocator);
     }
 
     pub fn writeBuffers(self: Self, world: *const World, dt: f32, t: f32) void {
         const wh = self.window.getFramebufferSize();
         const fog = world.map.render_settings.fog;
 
-        // uniforms
         var uniforms_data = Uniforms{
             .screen_wh = .{ @floatFromInt(wh[0]), @floatFromInt(wh[1]), 0, 0 },
             .player_pos = .{ world.player.position.x, world.player.position.y, 0, 0 },
@@ -274,20 +272,46 @@ pub const Renderer = struct {
     }
 };
 
-fn createShaderPipeline(
+pub const Renderer = struct {
+    const Self = @This();
+
+    world_renderer: WorldRenderer,
+
+    pub fn init(
+        allocator: std.mem.Allocator,
+        gctx: *zgpu.GraphicsContext,
+        window: *zglfw.Window,
+        map: *const Map,
+    ) !Self {
+        return .{
+            .world_renderer = try WorldRenderer.init(
+                allocator,
+                gctx,
+                window,
+                map,
+            ),
+        };
+    }
+
+    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
+        self.world_renderer.deinit(allocator);
+    }
+};
+
+fn createWorldPipeline(
     gctx: *zgpu.GraphicsContext,
     pipeline_layout: zgpu.PipelineLayoutHandle,
 ) !zgpu.RenderPipelineHandle {
     const vs_module = zgpu.createWgslShaderModule(
         gctx.device,
-        @embedFile("shaders/vertex.wgsl"),
+        @embedFile("shaders/world_vertex.wgsl"),
         "vs_main",
     );
     defer vs_module.release();
 
     const fs_module = zgpu.createWgslShaderModule(
         gctx.device,
-        @embedFile("shaders/fragment.wgsl"),
+        @embedFile("shaders/world_fragment.wgsl"),
         "fs_main",
     );
     defer fs_module.release();
