@@ -49,6 +49,20 @@ pub const Vec2 = struct {
         self.y = old_x * @sin(amount) + self.y * @cos(amount);
     }
 
+    pub fn rotated(self: Self, amount: f32) Self {
+        return .{
+            .x = self.x * @cos(amount) - self.y * @sin(amount),
+            .y = self.x * @sin(amount) + self.y * @cos(amount),
+        };
+    }
+
+    pub fn lerp(self: Self, other: Self, t: f32) Self {
+        return .{
+            .x = self.x + (other.x - self.x) * t,
+            .y = self.y + (other.y - self.y) * t,
+        };
+    }
+
     pub fn perpendicular(self: Self) Self {
         return .{ .x = self.y, .y = -self.x };
     }

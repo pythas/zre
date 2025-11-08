@@ -10,6 +10,7 @@ const MapResult = @import("map.zig").MapResult;
 const Camera = @import("camera.zig").Camera;
 const Entity = @import("entity.zig").Entity;
 const Tile = @import("map.zig").Tile;
+const MouseGesture = @import("input.zig").MouseGesture;
 
 pub const MapSource = union(enum) {
     path: []const u8,
@@ -31,6 +32,8 @@ pub const KeyboardState = struct {
         d,
         q,
         e,
+        r,
+        f,
         up,
         down,
         left,
@@ -53,6 +56,8 @@ pub const KeyboardState = struct {
         if (self.window.getKey(.d) == .press) self.curr |= bit(.d);
         if (self.window.getKey(.q) == .press) self.curr |= bit(.q);
         if (self.window.getKey(.e) == .press) self.curr |= bit(.e);
+        if (self.window.getKey(.r) == .press) self.curr |= bit(.r);
+        if (self.window.getKey(.f) == .press) self.curr |= bit(.f);
         if (self.window.getKey(.up) == .press) self.curr |= bit(.up);
         if (self.window.getKey(.down) == .press) self.curr |= bit(.down);
         if (self.window.getKey(.left) == .press) self.curr |= bit(.left);
@@ -87,6 +92,9 @@ pub const World = struct {
     player: Player,
     camera: Camera,
     entities: std.ArrayList(Entity),
+    // prev_mouse_x: f32 = 0.0,
+    // prev_mouse_y: f32 = 0.0,
+    active_gesture: ?MouseGesture = null,
 
     pub fn init(allocator: std.mem.Allocator, map_result: *MapResult) !Self {
         const player = try Player.init(
@@ -113,86 +121,140 @@ pub const World = struct {
         _ = self;
     }
 
-    pub fn update(self: *Self, dt: f32, keyboard_state: *const KeyboardState) void {
-        if (keyboard_state.isDown(.w)) {
-            self.movePlayerForward(dt);
+    pub fn update(
+        self: *Self,
+        dt: f32,
+        keyboard_state: *const KeyboardState,
+        window: *zglfw.Window,
+    ) void {
+        self.player.update(dt, &self.camera.plane);
+
+        const mouse_pos = window.getCursorPos();
+        const mouse_x: f32 = @floatCast(mouse_pos[0]);
+        const mouse_y: f32 = @floatCast(mouse_pos[1]);
+        const left_button = window.getMouseButton(.left);
+
+        if (left_button == .press) {
+            if (self.active_gesture == null) {
+                self.active_gesture = MouseGesture.init(mouse_x, mouse_y);
+            } else {
+                self.active_gesture.?.update(mouse_x, mouse_y);
+            }
+        } else if (left_button == .release and self.active_gesture != null) {
+            if (self.active_gesture.?.detectGesture()) |gesture_type| {
+                self.player.startAttack(gesture_type);
+            }
+
+            self.active_gesture = null;
         }
 
-        if (keyboard_state.isDown(.s)) {
-            self.movePlayerBackward(dt);
+        if (self.player.isAnimating()) {
+            return;
         }
 
-        if (keyboard_state.isDown(.a)) {
-            self.rotatePlayerLeft(dt);
+        if (keyboard_state.isPressed(.w)) {
+            self.tryMovePlayerForward();
         }
 
-        if (keyboard_state.isDown(.d)) {
-            self.rotatePlayerRight(dt);
+        if (keyboard_state.isPressed(.s)) {
+            self.tryMovePlayerBackward();
         }
 
-        // if (keyboard_state.isKeyPressed(.q)) {
-        //     self.strafePlayerLeft(dt);
-        // }
-        //
-        // if (keyboard_state.isKeyPressed(.e)) {
-        //     self.strafePlayerRight(dt);
-        // }
+        if (keyboard_state.isPressed(.a)) {
+            self.tryMovePlayerLeft();
+        }
+
+        if (keyboard_state.isPressed(.d)) {
+            self.tryMovePlayerRight();
+        }
+
+        if (keyboard_state.isPressed(.q)) {
+            self.turnPlayerLeft();
+        }
 
         if (keyboard_state.isPressed(.e)) {
+            self.turnPlayerRight();
+        }
+
+        if (keyboard_state.isPressed(.r) or keyboard_state.isPressed(.f)) {
             self.interactWithDoor();
         }
     }
 
-    fn movePlayerForward(self: *Self, dt: f32) void {
-        const new_pos = self.player.position.add(self.player.direction.mulScalar(Player.move_speed * dt));
+    fn tryMovePlayerForward(self: *Self) void {
+        const current_x = @as(i32, @intFromFloat(@floor(self.player.position.x)));
+        const current_y = @as(i32, @intFromFloat(@floor(self.player.position.y)));
 
-        const map_x = @as(i32, @intFromFloat(@trunc(new_pos.x)));
-        const map_y = @as(i32, @intFromFloat(@trunc(new_pos.y)));
+        const target_x = current_x + @as(i32, @intFromFloat(@round(self.player.direction.x)));
+        const target_y = current_y + @as(i32, @intFromFloat(@round(self.player.direction.y)));
 
-        if (self.map.getTile(map_x, map_y).kind == .Empty) {
-            self.player.moveForward(dt, 1.0);
+        if (self.map.getTile(target_x, target_y).kind == .Empty) {
+            const target_pos = Vec2.init(
+                @as(f32, @floatFromInt(target_x)) + 0.5,
+                @as(f32, @floatFromInt(target_y)) + 0.5,
+            );
+            self.player.startMove(target_pos);
         }
     }
 
-    fn movePlayerBackward(self: *Self, dt: f32) void {
-        const new_pos = self.player.position.add(self.player.direction.mulScalar(-Player.move_speed * dt));
+    fn tryMovePlayerBackward(self: *Self) void {
+        const current_x = @as(i32, @intFromFloat(@floor(self.player.position.x)));
+        const current_y = @as(i32, @intFromFloat(@floor(self.player.position.y)));
 
-        const map_x = @as(i32, @intFromFloat(@trunc(new_pos.x)));
-        const map_y = @as(i32, @intFromFloat(@trunc(new_pos.y)));
+        const target_x = current_x - @as(i32, @intFromFloat(@round(self.player.direction.x)));
+        const target_y = current_y - @as(i32, @intFromFloat(@round(self.player.direction.y)));
 
-        if (self.map.getTile(map_x, map_y).kind == .Empty) {
-            self.player.moveBackward(dt, 1.0);
+        if (self.map.getTile(target_x, target_y).kind == .Empty) {
+            const target_pos = Vec2.init(
+                @as(f32, @floatFromInt(target_x)) + 0.5,
+                @as(f32, @floatFromInt(target_y)) + 0.5,
+            );
+            self.player.startMove(target_pos);
         }
     }
 
-    fn strafePlayerLeft(self: *Self, dt: f32) void {
-        const new_pos = self.player.position.add(self.camera.plane.mulScalar(-Player.move_speed * dt));
+    fn tryMovePlayerLeft(self: *Self) void {
+        const current_x = @as(i32, @intFromFloat(@floor(self.player.position.x)));
+        const current_y = @as(i32, @intFromFloat(@floor(self.player.position.y)));
 
-        const map_x = @as(i32, @intFromFloat(@trunc(new_pos.x)));
-        const map_y = @as(i32, @intFromFloat(@trunc(new_pos.y)));
+        const left = self.camera.plane.mulScalar(-1.0).normalize();
+        const target_x = current_x + @as(i32, @intFromFloat(@round(left.x)));
+        const target_y = current_y + @as(i32, @intFromFloat(@round(left.y)));
 
-        if (self.map.getTile(map_x, map_y).kind == .Empty) {
-            self.player.strafeLeft(dt, 1.0, self.camera.plane);
+        if (self.map.getTile(target_x, target_y).kind == .Empty) {
+            const target_pos = Vec2.init(
+                @as(f32, @floatFromInt(target_x)) + 0.5,
+                @as(f32, @floatFromInt(target_y)) + 0.5,
+            );
+            self.player.startMove(target_pos);
         }
     }
 
-    fn strafePlayerRight(self: *Self, dt: f32) void {
-        const new_pos = self.player.position.add(self.camera.plane.mulScalar(Player.move_speed * dt));
+    fn tryMovePlayerRight(self: *Self) void {
+        const current_x = @as(i32, @intFromFloat(@floor(self.player.position.x)));
+        const current_y = @as(i32, @intFromFloat(@floor(self.player.position.y)));
 
-        const map_x = @as(i32, @intFromFloat(@trunc(new_pos.x)));
-        const map_y = @as(i32, @intFromFloat(@trunc(new_pos.y)));
+        const right = self.camera.plane.normalize();
+        const target_x = current_x + @as(i32, @intFromFloat(@round(right.x)));
+        const target_y = current_y + @as(i32, @intFromFloat(@round(right.y)));
 
-        if (self.map.getTile(map_x, map_y).kind == .Empty) {
-            self.player.strafeRight(dt, 1.0, self.camera.plane);
+        if (self.map.getTile(target_x, target_y).kind == .Empty) {
+            const target_pos = Vec2.init(
+                @as(f32, @floatFromInt(target_x)) + 0.5,
+                @as(f32, @floatFromInt(target_y)) + 0.5,
+            );
+            self.player.startMove(target_pos);
         }
     }
 
-    fn rotatePlayerLeft(self: *Self, dt: f32) void {
-        self.player.rotate(dt, 1.0, &self.camera.plane);
+    fn turnPlayerLeft(self: *Self) void {
+        const turn_angle = std.math.pi / 2.0;
+        self.player.startTurn(turn_angle, self.camera.plane);
     }
 
-    fn rotatePlayerRight(self: *Self, dt: f32) void {
-        self.player.rotate(dt, -1.0, &self.camera.plane);
+    fn turnPlayerRight(self: *Self) void {
+        const turn_angle = -std.math.pi / 2.0;
+        self.player.startTurn(turn_angle, self.camera.plane);
     }
 
     fn interactWithDoor(self: *Self) void {

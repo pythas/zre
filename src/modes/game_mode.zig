@@ -46,7 +46,7 @@ pub const GameMode = struct {
 
     pub fn update(self: *Self, dt: f32) !void {
         self.keyboard_state.beginFrame();
-        self.world.update(dt, &self.keyboard_state);
+        self.world.update(dt, &self.keyboard_state, self.window);
     }
 
     pub fn render(
