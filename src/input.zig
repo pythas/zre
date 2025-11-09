@@ -1,6 +1,6 @@
 const std = @import("std");
 const Vec2 = @import("vec2.zig").Vec2;
-const AttackType = @import("player.zig").AttackType;
+const AttackType = @import("viewmodel.zig").AttackType;
 
 pub const MouseGesture = struct {
     const Self = @This();

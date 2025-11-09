@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const Vec2 = @import("vec2.zig").Vec2;
+const AttackType = @import("viewmodel.zig").AttackType;
 
 pub const MoveAnimation = struct {
     start_pos: Vec2,
@@ -39,12 +40,6 @@ pub const TurnAnimation = struct {
         const t = @min(self.progress / self.duration, 1.0);
         return self.start_plane.lerp(self.target_plane, t);
     }
-};
-
-pub const AttackType = enum {
-    horizontal_slash,
-    overhead_strike,
-    thrust,
 };
 
 pub const AttackAnimation = struct {

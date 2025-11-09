@@ -2,12 +2,14 @@ const std = @import("std");
 const zgpu = @import("zgpu");
 const wgpu = zgpu.wgpu;
 const zglfw = @import("zglfw");
+const zmesh = @import("zmesh");
 
 const World = @import("world.zig").World;
 const Map = @import("map.zig").Map;
 const Light = @import("light.zig").Light;
+const Viewmodel = @import("viewmodel.zig").Viewmodel;
 
-pub const Uniforms = extern struct {
+pub const WorldUniforms = extern struct {
     screen_wh: [4]f32, // w,h
     player_pos: [4]f32, // x,y
     player_dir: [4]f32, // x,y
@@ -21,6 +23,22 @@ pub const Uniforms = extern struct {
     dt: f32,
     t: f32,
 };
+
+pub const ViewmodelUniforms = extern struct {
+    transform_translate: [4]f32, // xyz = translation, w unused
+    transform_rotate: [4]f32,    // xyzw = quaternion rotation
+    dt: f32,
+    t: f32,
+    _pad0: f32,
+    _pad1: f32,
+};
+
+const GPUVertex = struct {
+    position: [3]f32,
+    normal: [3]f32,
+};
+
+const IndexType = zmesh.Shape.IndexType;
 
 const GPULight = extern struct {
     const Self = @This();
@@ -224,7 +242,7 @@ pub const WorldRenderer = struct {
         const wh = self.window.getFramebufferSize();
         const fog = world.map.render_settings.fog;
 
-        var uniforms_data = Uniforms{
+        var uniforms_data = WorldUniforms{
             .screen_wh = .{ @floatFromInt(wh[0]), @floatFromInt(wh[1]), 0, 0 },
             .player_pos = .{ world.player.position.x, world.player.position.y, 0, 0 },
             .player_dir = .{ world.player.direction.x, world.player.direction.y, 0, 0 },
@@ -272,29 +290,163 @@ pub const WorldRenderer = struct {
     }
 };
 
-pub const Renderer = struct {
+pub const ViewmodelRenderer = struct {
     const Self = @This();
 
-    world_renderer: WorldRenderer,
+    allocator: std.mem.Allocator,
+    gctx: *zgpu.GraphicsContext,
+    window: *zglfw.Window,
+    bind_group_layout: zgpu.BindGroupLayoutHandle,
+    pipeline_layout: zgpu.PipelineLayoutHandle,
+    pipeline: zgpu.RenderPipelineHandle,
+    bind_group: zgpu.BindGroupHandle,
+    uniforms_buffer: zgpu.BufferHandle,
+    vertex_buffer: zgpu.BufferHandle,
+    index_buffer: zgpu.BufferHandle,
+    viewmodel: *Viewmodel,
 
     pub fn init(
         allocator: std.mem.Allocator,
         gctx: *zgpu.GraphicsContext,
         window: *zglfw.Window,
-        map: *const Map,
+        viewmodel: *Viewmodel,
     ) !Self {
+        const bind_group_layout = gctx.createBindGroupLayout(&.{
+            zgpu.bufferEntry(0, .{ .vertex = true, .fragment = true }, .uniform, false, 0),
+            zgpu.textureEntry(1, .{ .fragment = true }, .uint, .tvdim_2d, false),
+            zgpu.samplerEntry(2, .{ .fragment = true }, .filtering),
+        });
+        const pipeline_layout = gctx.createPipelineLayout(&.{bind_group_layout});
+
+        const sampler = gctx.createSampler(.{
+            .mag_filter = .nearest,
+            .min_filter = .nearest,
+            .mipmap_filter = .nearest,
+        });
+
+        // texture
+
+        const texture = gctx.createTexture(.{
+            .usage = .{ .texture_binding = true, .copy_dst = true },
+            .size = .{
+                .width = 128,
+                .height = 123,
+                .depth_or_array_layers = 1,
+            },
+            .format = wgpu.TextureFormat.r8_uint,
+            .mip_level_count = 1,
+        });
+        const texture_view = gctx.createTextureView(texture, .{});
+
+        // buffers
+        const uniforms_buffer = gctx.createBuffer(.{
+            .usage = .{ .copy_dst = true, .uniform = true },
+            .size = 256,
+        });
+
+        const num_vertices = viewmodel.mesh.getVertexCount();
+
+        const vertex_buffer = gctx.createBuffer(.{
+            .usage = .{ .copy_dst = true, .vertex = true },
+            .size = num_vertices * @sizeOf(GPUVertex),
+        });
+
+        const num_indices = viewmodel.mesh.getIndexCount();
+
+        const index_buffer = gctx.createBuffer(.{
+            .usage = .{ .copy_dst = true, .index = true },
+            .size = num_indices * @sizeOf(IndexType),
+        });
+
+        const bind_group = gctx.createBindGroup(bind_group_layout, &.{
+            .{ .binding = 0, .buffer_handle = uniforms_buffer, .offset = 0, .size = 256 },
+            .{ .binding = 1, .texture_view_handle = texture_view },
+            .{ .binding = 2, .sampler_handle = sampler },
+        });
+
+        const pipeline = try createViewmodelPipeline(
+            gctx,
+            pipeline_layout,
+        );
+
+        // Initialize vertex and index buffers with mesh data
+        var vertices = std.ArrayList(GPUVertex).init(allocator);
+        defer vertices.deinit();
+
+        const num_verts = @min(viewmodel.mesh.positions.items.len, viewmodel.mesh.normals.items.len);
+        for (0..num_verts) |i| {
+            try vertices.append(GPUVertex{
+                .position = viewmodel.mesh.positions.items[i],
+                .normal = viewmodel.mesh.normals.items[i],
+            });
+        }
+
+        if (vertices.items.len > 0) {
+            gctx.queue.writeBuffer(
+                gctx.lookupResource(vertex_buffer).?,
+                0,
+                GPUVertex,
+                vertices.items,
+            );
+        }
+
+        if (viewmodel.mesh.indices.items.len > 0) {
+            gctx.queue.writeBuffer(
+                gctx.lookupResource(index_buffer).?,
+                0,
+                u32,
+                viewmodel.mesh.indices.items,
+            );
+        }
+
         return .{
-            .world_renderer = try WorldRenderer.init(
-                allocator,
-                gctx,
-                window,
-                map,
-            ),
+            .allocator = allocator,
+            .gctx = gctx,
+            .window = window,
+            .bind_group_layout = bind_group_layout,
+            .pipeline_layout = pipeline_layout,
+            .pipeline = pipeline,
+            .bind_group = bind_group,
+            .uniforms_buffer = uniforms_buffer,
+            .vertex_buffer = vertex_buffer,
+            .index_buffer = index_buffer,
+            .viewmodel = viewmodel,
         };
     }
 
-    pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
-        self.world_renderer.deinit(allocator);
+    pub fn deinit(self: Self, allocator: std.mem.Allocator) void {
+        _ = self;
+        _ = allocator;
+    }
+
+    pub fn writeBuffers(self: Self, viewmodel: *const Viewmodel, dt: f32, t: f32) void {
+        const transform = viewmodel.getCurrentTransform();
+
+        var uniforms_data = ViewmodelUniforms{
+            .transform_translate = [4]f32{
+                transform.translation[0],
+                transform.translation[1],
+                transform.translation[2],
+                0.0,
+            },
+            .transform_rotate = transform.rotation,
+            .dt = dt,
+            .t = t,
+            ._pad0 = 0.0,
+            ._pad1 = 0.0,
+        };
+
+        self.gctx.queue.writeBuffer(
+            self.gctx.lookupResource(self.uniforms_buffer).?,
+            0,
+            u8,
+            std.mem.asBytes(&uniforms_data),
+        );
+    }
+
+    pub fn writeTextures(self: Self, world: *const World) !void {
+        _ = self;
+        _ = world;
     }
 };
 
@@ -326,6 +478,61 @@ fn createWorldPipeline(
             .entry_point = "main",
             .buffer_count = 0,
             .buffers = null,
+        },
+        .primitive = .{
+            .topology = .triangle_list,
+            .front_face = .ccw,
+            .cull_mode = .none,
+        },
+        .fragment = &wgpu.FragmentState{
+            .module = fs_module,
+            .entry_point = "main",
+            .target_count = color_targets.len,
+            .targets = &color_targets,
+        },
+    };
+
+    return gctx.createRenderPipeline(pipeline_layout, pipeline_descriptor);
+}
+
+fn createViewmodelPipeline(
+    gctx: *zgpu.GraphicsContext,
+    pipeline_layout: zgpu.PipelineLayoutHandle,
+) !zgpu.RenderPipelineHandle {
+    const vs_module = zgpu.createWgslShaderModule(
+        gctx.device,
+        @embedFile("shaders/viewmodel_vertex.wgsl"),
+        "vs_main",
+    );
+    defer vs_module.release();
+
+    const fs_module = zgpu.createWgslShaderModule(
+        gctx.device,
+        @embedFile("shaders/viewmodel_fragment.wgsl"),
+        "fs_main",
+    );
+    defer fs_module.release();
+
+    const color_targets = [_]wgpu.ColorTargetState{
+        .{ .format = gctx.swapchain_descriptor.format },
+    };
+
+    const vertex_attributes = [_]wgpu.VertexAttribute{
+        .{ .format = .float32x3, .offset = 0, .shader_location = 0 },
+        .{ .format = .float32x3, .offset = @offsetOf(GPUVertex, "normal"), .shader_location = 1 },
+    };
+    const vertex_buffers = [_]wgpu.VertexBufferLayout{.{
+        .array_stride = @sizeOf(GPUVertex),
+        .attribute_count = vertex_attributes.len,
+        .attributes = &vertex_attributes,
+    }};
+
+    const pipeline_descriptor = wgpu.RenderPipelineDescriptor{
+        .vertex = .{
+            .module = vs_module,
+            .entry_point = "main",
+            .buffer_count = vertex_buffers.len,
+            .buffers = &vertex_buffers,
         },
         .primitive = .{
             .topology = .triangle_list,

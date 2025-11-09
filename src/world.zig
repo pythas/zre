@@ -92,8 +92,6 @@ pub const World = struct {
     player: Player,
     camera: Camera,
     entities: std.ArrayList(Entity),
-    // prev_mouse_x: f32 = 0.0,
-    // prev_mouse_y: f32 = 0.0,
     active_gesture: ?MouseGesture = null,
 
     pub fn init(allocator: std.mem.Allocator, map_result: *MapResult) !Self {
@@ -102,7 +100,6 @@ pub const World = struct {
             Vec2.init(map_result.player_direction[0], map_result.player_direction[1]),
         );
 
-        // Camera plane should be perpendicular to player direction with FOV factor
         const direction = Vec2.init(map_result.player_direction[0], map_result.player_direction[1]);
         const plane = direction.perpendicular().mulScalar(0.66);
 
